@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: #f3f6f5;
+  --foreground: #10211e;
+  --card: #ffffff;
+  --card-foreground: #10211e;
+  --popover: #ffffff;
+  --popover-foreground: #10211e;
+  --primary: #1d7363;
+  --primary-foreground: #f7fbfa;
+  --secondary: #e8f2ef;
+  --secondary-foreground: #14544b;
+  --muted: #eef3f1;
+  --muted-foreground: #5b6f6a;
+  --accent: #fff4e8;
+  --accent-foreground: #9a4e0c;
+  --destructive: #dc2626;
+  --border: #d7e4df;
+  --input: #d7e4df;
+  --ring: #1d7363;
+  --sidebar: #082521;
+  --sidebar-foreground: #e7f3ef;
+  --sidebar-accent: #0f3a33;
+  --sidebar-border: rgba(99, 194, 171, 0.18);
+}
+
+.dark {
+  --background: #071412;
+  --foreground: #e8f2ef;
+  --card: #0d2420;
+  --card-foreground: #e8f2ef;
+  --popover: #0d2420;
+  --popover-foreground: #e8f2ef;
+  --primary: #63c2ab;
+  --primary-foreground: #082521;
+  --secondary: #12332d;
+  --secondary-foreground: #d9ece7;
+  --muted: #12332d;
+  --muted-foreground: #93b0a8;
+  --accent: #3a2714;
+  --accent-foreground: #f3c48a;
+  --destructive: #f87171;
+  --border: #1d4039;
+  --input: #1d4039;
+  --ring: #63c2ab;
+  --sidebar: #04120f;
+  --sidebar-foreground: #d9ece7;
+  --sidebar-accent: #0f3a33;
+  --sidebar-border: rgba(99, 194, 171, 0.16);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-brand: #1d7363;
+  --color-brand-50: #eef6f4;
+  --color-brand-100: #d9ece7;
+  --color-brand-200: #b3d9d0;
+  --color-brand-300: #63c2ab;
+  --color-brand-400: #2aa189;
+  --color-brand-500: #197265;
+  --color-brand-600: #1d7363;
+  --color-brand-700: #14544b;
+  --color-brand-800: #0f3a33;
+  --color-brand-900: #082521;
+  --color-brand-950: #04120f;
+  --color-orange: #e38019;
+  --color-success: #0f8a5f;
+  --color-success-soft: #e8f7f0;
+  --color-warning: #b45309;
+  --color-warning-soft: #fff7ed;
+  --color-info: #0369a1;
+  --color-info-soft: #e0f2fe;
+  --color-danger: #be123c;
+  --color-danger-soft: #fff1f2;
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --shadow-soft: 0 14px 40px -28px rgba(8, 37, 33, 0.45);
+  --shadow-lift: 0 22px 50px -28px rgba(29, 115, 99, 0.45);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply antialiased;
+    scrollbar-width: thin;
+    scrollbar-color: #63c2ab transparent;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 100% 0%, rgba(29, 115, 99, 0.08), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 0% 100%, rgba(227, 128, 25, 0.06), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .surface-panel {
+    @apply rounded-3xl border border-border/80 bg-card shadow-soft;
+  }
+
+  .login-atmosphere {
+    background:
+      radial-gradient(ellipse 70% 50% at 12% 18%, rgba(29, 115, 99, 0.18), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 90% 10%, rgba(227, 128, 25, 0.14), transparent 50%),
+      linear-gradient(165deg, #f7fbfa 0%, #eef6f4 48%, #f3f6f5 100%);
+  }
+
+  .brand-gradient {
+    background: linear-gradient(145deg, #2aa189 0%, #1d7363 48%, #082521 100%);
+  }
+}
