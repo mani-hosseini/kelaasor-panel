@@ -6,6 +6,7 @@ import { Bell, Menu, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { FloatingCrmDock } from "@/components/layout/FloatingCrmDock";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { AdminSidebar, mobileNav } from "@/components/layout/AdminSidebar";
 import { Button } from "@/components/ui/button";
@@ -140,6 +141,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+      <FloatingCrmDock />
     </div>
   );
 }

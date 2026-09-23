@@ -25,7 +25,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { bootcampTitle, userName } from "@/lib/api/client";
 import { useDashboard } from "@/lib/api/queries";
-import { formatJalaliDateTime, formatPercent, formatToman, toFa } from "@/lib/format";
+import type { CustomerListItem } from "@/lib/api/types";
+import { formatJalaliDate, formatJalaliDateTime, formatPercent, formatToman, toFa } from "@/lib/format";
 import { routes } from "@/lib/routes";
 
 export default function DashboardPage() {
@@ -43,11 +44,11 @@ export default function DashboardPage() {
 
   const kpis = [
     { label: "مشتریان", value: toFa(data.totalUsers), icon: Users, hint: "دانشجوی ثبت‌شده در سایت" },
-    { label: "بوت‌کمپ فعال", value: toFa(data.activeBootcamps), icon: GraduationCap, hint: "دارای ثبت‌نام جاری" },
     { label: "صف ادمین", value: toFa(data.pendingAdminActions), icon: ClipboardList, hint: "گام بعدی با شماست" },
-    { label: "منتظر تماس", value: toFa(data.awaitingCounselorCall), icon: PhoneCall, hint: "پیش‌ثبت‌نام و پیگیری" },
-    { label: "تأیید فیش", value: toFa(data.awaitingPaymentVerification), icon: AlertTriangle, hint: "منتظر بررسی رسید" },
-    { label: "وصول‌شده", value: formatToman(data.collectedRevenue), icon: Wallet, hint: "مبالغ تأییدشده" },
+    { label: "پیگیری امروز", value: toFa(data.todayFollowUpsCount), icon: PhoneCall, hint: "یادآوری‌های امروز" },
+    { label: "پیگیری معوق", value: toFa(data.overdueFollowUpsCount), icon: AlertTriangle, hint: "از موعد گذشته" },
+    { label: "تأیید فیش", value: toFa(data.awaitingPaymentVerification), icon: Wallet, hint: "منتظر بررسی رسید" },
+    { label: "بدون تماس", value: toFa(data.coldCustomersCount), icon: GraduationCap, hint: "بیش از ۷ روز فعالیت نداشته" },
   ];
 
   return (
@@ -123,11 +124,24 @@ export default function DashboardPage() {
             <CardTitle>مشتریان اولویت‌دار و آمار مالی</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="priority">
+            <Tabs defaultValue="followups">
               <TabsList>
-                <TabsTrigger value="priority">مشتریان نیازمند پیگیری</TabsTrigger>
-                <TabsTrigger value="finance">آمار پرداخت‌ها</TabsTrigger>
+                <TabsTrigger value="followups">پیگیری‌ها</TabsTrigger>
+                <TabsTrigger value="priority">اولویت ثبت‌نام</TabsTrigger>
+                <TabsTrigger value="starred">نشان‌شده ({toFa(data.starredCount)})</TabsTrigger>
+                <TabsTrigger value="finance">آمار پرداخت</TabsTrigger>
               </TabsList>
+              <TabsContent value="followups" className="mt-4 space-y-2">
+                {data.followUpCustomers.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                    پیگیری امروز یا معوقی نیست.
+                  </p>
+                ) : (
+                  data.followUpCustomers.map((customer) => (
+                    <CustomerRow key={customer.id} customer={customer} showFollowUp />
+                  ))
+                )}
+              </TabsContent>
               <TabsContent value="priority" className="mt-4 space-y-2">
                 {data.priorityCustomers.length === 0 ? (
                   <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
@@ -135,29 +149,18 @@ export default function DashboardPage() {
                   </p>
                 ) : (
                   data.priorityCustomers.map((customer) => (
-                    <Link
-                      key={customer.id}
-                      href={routes.customer(customer.id)}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3 text-right transition hover:bg-brand-50/50"
-                    >
-                      <div className="min-w-0 text-right">
-                        <p className="text-sm font-semibold">
-                          {customer.firstName} {customer.lastName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {customer.activeBootcampTitle ?? "بدون بوت‌کمپ"} ·{" "}
-                          <span dir="ltr">{customer.phoneNumber}</span>
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {customer.activeEnrollmentStatus != null ? (
-                          <EnrollmentStatusBadge status={customer.activeEnrollmentStatus} />
-                        ) : null}
-                        <Button size="sm" variant="outline" asChild>
-                          <span>پرونده</span>
-                        </Button>
-                      </div>
-                    </Link>
+                    <CustomerRow key={customer.id} customer={customer} />
+                  ))
+                )}
+              </TabsContent>
+              <TabsContent value="starred" className="mt-4 space-y-2">
+                {data.starredCustomers.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                    مشتری نشان‌شده‌ای نیست.
+                  </p>
+                ) : (
+                  data.starredCustomers.map((customer) => (
+                    <CustomerRow key={customer.id} customer={customer} />
                   ))
                 )}
               </TabsContent>
@@ -184,6 +187,14 @@ export default function DashboardPage() {
                     }
                   />
                 </div>
+                {data.coldCustomers.length > 0 ? (
+                  <div className="sm:col-span-3 space-y-2">
+                    <p className="text-sm font-semibold">مشتریان سرد (بدون فعالیت ۷ روز)</p>
+                    {data.coldCustomers.slice(0, 3).map((customer) => (
+                      <CustomerRow key={customer.id} customer={customer} />
+                    ))}
+                  </div>
+                ) : null}
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -330,5 +341,58 @@ function FinanceStat({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-2 text-sm font-bold">{value}</p>
     </div>
+  );
+}
+
+function CustomerRow({
+  customer,
+  showFollowUp,
+}: {
+  customer: CustomerListItem;
+  showFollowUp?: boolean;
+}) {
+  return (
+    <Link
+      href={routes.customer(customer.id)}
+      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3 text-right transition hover:bg-brand-50/50"
+    >
+      <div className="min-w-0 text-right">
+        <p className="text-sm font-semibold">
+          {customer.firstName} {customer.lastName}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {customer.activeBootcampTitle ?? "بدون بوت‌کمپ"} ·{" "}
+          <span dir="ltr">{customer.phoneNumber}</span>
+          {showFollowUp && customer.followUpAt
+            ? ` · ${formatJalaliDate(customer.followUpAt)}`
+            : ""}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        {showFollowUp ? (
+          <Badge
+            variant={
+              customer.followUpState === "overdue"
+                ? "danger"
+                : customer.followUpState === "today"
+                  ? "warning"
+                  : "secondary"
+            }
+          >
+            {customer.followUpState === "overdue"
+              ? "معوق"
+              : customer.followUpState === "today"
+                ? "امروز"
+                : "پیگیری"}
+          </Badge>
+        ) : null}
+        {customer.activeEnrollmentStatus != null ? (
+          <EnrollmentStatusBadge status={customer.activeEnrollmentStatus} />
+        ) : null}
+        <Button size="sm" variant="outline" asChild>
+          <span>پرونده</span>
+        </Button>
+      </div>
+    </Link>
   );
 }
