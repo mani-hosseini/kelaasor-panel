@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { Phone, StickyNote, Trash2 } from "lucide-react";
+import { Copy, Phone, Star, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ActivityTimeline } from "@/components/customers/ActivityTimeline";
 import { EnrollmentPipeline } from "@/components/customers/EnrollmentPipeline";
 import { EnrollmentStatusBadge } from "@/components/enrollments/EnrollmentStatusBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -31,6 +32,9 @@ import {
   useAddCustomerNote,
   useCustomer,
   useDeleteCustomerNote,
+  useSetCustomerFollowUp,
+  useSetCustomerTags,
+  useToggleCustomerStar,
   useUpdateEnrollmentStatus,
   useUpdateUser,
 } from "@/lib/api/queries";
@@ -43,6 +47,7 @@ import {
 import { callOutcomeLabels } from "@/lib/api/mock/seed";
 import { formatJalaliDate, formatJalaliDateTime, toFa } from "@/lib/format";
 import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 
 const stageActions: { label: string; status: EnrollmentStatus; destructive?: boolean }[] = [
   { label: "منتظر تماس مشاور", status: ENROLLMENT_STATUS.THINKING },
@@ -63,12 +68,17 @@ export default function CustomerDetailPage() {
   const addNote = useAddCustomerNote();
   const deleteNote = useDeleteCustomerNote();
   const addCall = useAddCustomerCall();
+  const toggleStar = useToggleCustomerStar();
+  const setFollowUp = useSetCustomerFollowUp();
+  const setTags = useSetCustomerTags();
 
   const [noteBody, setNoteBody] = useState("");
   const [callSummary, setCallSummary] = useState("");
   const [callOutcome, setCallOutcome] = useState<CallOutcome>(CALL_OUTCOME.ANSWERED);
   const [callDuration, setCallDuration] = useState("");
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string>("");
+  const [followUpInput, setFollowUpInput] = useState("");
+  const [tagInput, setTagInput] = useState("");
 
   if (isLoading) return <Skeleton className="h-96" />;
   if (!data) {
@@ -82,7 +92,7 @@ export default function CustomerDetailPage() {
     );
   }
 
-  const { user, enrollments, notes, calls } = data;
+  const { user, enrollments, notes, calls, activity } = data;
   const activeEnrollment =
     enrollments.find(
       (item) =>
@@ -100,8 +110,38 @@ export default function CustomerDetailPage() {
         title={`${user.firstName} ${user.lastName}`}
         description={`${user.phoneNumber} · ${user.email}`}
         actions={
-          <div className="flex flex-wrap items-center justify-start gap-3">
+          <div className="flex flex-wrap items-center justify-start gap-2">
             {activeEnrollment ? <EnrollmentStatusBadge status={activeEnrollment.status} /> : null}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                toggleStar.mutate(id, {
+                  onSuccess: () =>
+                    toast.success(user.isStarred ? "از نشان‌شده‌ها حذف شد" : "نشان شد"),
+                })
+              }
+            >
+              <Star className={cn("size-4", user.isStarred && "fill-orange text-orange")} />
+              {user.isStarred ? "نشان‌شده" : "نشان‌کردن"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                await navigator.clipboard.writeText(user.phoneNumber);
+                toast.success("شماره کپی شد");
+              }}
+            >
+              <Copy className="size-4" />
+              کپی موبایل
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <a href={`tel:${user.phoneNumber}`}>
+                <Phone className="size-4" />
+                تماس
+              </a>
+            </Button>
             <div className="flex items-center gap-3 rounded-2xl border border-border px-4 py-2">
               <span className="text-sm">حساب فعال</span>
               <Switch
@@ -118,9 +158,111 @@ export default function CustomerDetailPage() {
         }
       />
 
+      <Card>
+        <CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label>یادآوری پیگیری</Label>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={followUpInput || user.followUpAt?.slice(0, 10) || ""}
+                onChange={(event) => setFollowUpInput(event.target.value)}
+              />
+              <Button
+                size="sm"
+                disabled={setFollowUp.isPending}
+                onClick={() => {
+                  const value = followUpInput || user.followUpAt?.slice(0, 10) || null;
+                  setFollowUp.mutate(
+                    { userId: id, followUpAt: value },
+                    { onSuccess: () => toast.success("یادآوری ذخیره شد") },
+                  );
+                }}
+              >
+                ذخیره
+              </Button>
+            </div>
+            {user.followUpAt ? (
+              <p className="text-[11px] text-muted-foreground">
+                فعلی: {formatJalaliDate(user.followUpAt)}
+              </p>
+            ) : null}
+            {user.followUpAt ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() =>
+                  setFollowUp.mutate(
+                    { userId: id, followUpAt: null },
+                    { onSuccess: () => {
+                      setFollowUpInput("");
+                      toast.success("یادآوری پاک شد");
+                    } },
+                  )
+                }
+              >
+                پاک کردن یادآوری
+              </Button>
+            ) : null}
+          </div>
+          <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+            <Label>برچسب‌های CRM</Label>
+            <div className="flex flex-wrap gap-2">
+              {user.crmTags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="gap-1">
+                  {tag}
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-danger"
+                    onClick={() =>
+                      setTags.mutate(
+                        {
+                          userId: id,
+                          crmTags: user.crmTags.filter((item) => item !== tag),
+                        },
+                        { onSuccess: () => toast.success("برچسب حذف شد") },
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={tagInput}
+                onChange={(event) => setTagInput(event.target.value)}
+                placeholder="مثلاً VIP یا اقساط"
+              />
+              <Button
+                size="sm"
+                disabled={!tagInput.trim() || setTags.isPending}
+                onClick={() => {
+                  const next = [...user.crmTags, tagInput.trim()];
+                  setTags.mutate(
+                    { userId: id, crmTags: next },
+                    {
+                      onSuccess: () => {
+                        setTagInput("");
+                        toast.success("برچسب اضافه شد");
+                      },
+                    },
+                  );
+                }}
+              >
+                افزودن
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">نمای کلی</TabsTrigger>
+          <TabsTrigger value="timeline">تایم‌لاین ({toFa(activity.length)})</TabsTrigger>
           <TabsTrigger value="stages">مراحل ثبت‌نام</TabsTrigger>
           <TabsTrigger value="notes">یادداشت‌ها ({toFa(notes.length)})</TabsTrigger>
           <TabsTrigger value="calls">تماس‌ها ({toFa(calls.length)})</TabsTrigger>
@@ -244,6 +386,20 @@ export default function CustomerDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="timeline" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>تایم‌لاین فعالیت مشتری</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                یادداشت‌ها، تماس‌ها، ثبت‌نام‌ها و یادآوری‌ها در یک نمای زمانی.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ActivityTimeline items={activity} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="stages" className="space-y-4">
