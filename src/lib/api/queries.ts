@@ -5,6 +5,7 @@ import type {
   BlogPostInput,
   Bootcamp,
   BootcampInput,
+  CallOutcome,
   EnrollmentStatus,
   InstructorInput,
   ListParams,
@@ -22,6 +23,8 @@ export const queryKeys = {
   bootcamp: (id: number) => ["bootcamp", id] as const,
   users: (params?: ListParams) => ["users", params] as const,
   user: (id: number) => ["user", id] as const,
+  customers: (params?: ListParams) => ["customers", params] as const,
+  customer: (id: number) => ["customer", id] as const,
   instructors: (params?: ListParams) => ["instructors", params] as const,
   instructor: (id: number) => ["instructor", id] as const,
   blog: (params?: ListParams) => ["blog", params] as const,
@@ -58,6 +61,8 @@ export function useUpdateEnrollmentStatus() {
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ["enrollments"] });
       await client.invalidateQueries({ queryKey: ["enrollment"] });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: ["customer"] });
       await client.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
@@ -170,6 +175,68 @@ export function useUpdateUser() {
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ["users"] });
       await client.invalidateQueries({ queryKey: ["user"] });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: ["customer"] });
+    },
+  });
+}
+
+export function useCustomers(params?: ListParams) {
+  return useQuery({
+    queryKey: queryKeys.customers(params),
+    queryFn: () => adminApi.customers.list(params),
+  });
+}
+
+export function useCustomer(id: number) {
+  return useQuery({
+    queryKey: queryKeys.customer(id),
+    queryFn: () => adminApi.customers.get(id),
+    enabled: Number.isFinite(id),
+  });
+}
+
+export function useAddCustomerNote() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { userId: number; body: string }) =>
+      adminApi.customers.addNote(input.userId, input.body),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.customer(variables.userId) });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useDeleteCustomerNote() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { noteId: number; userId: number }) =>
+      adminApi.customers.deleteNote(input.noteId),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.customer(variables.userId) });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+}
+
+export function useAddCustomerCall() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      userId: number;
+      enrollmentId?: number | null;
+      calledAt?: string;
+      durationMinutes?: number | null;
+      outcome: CallOutcome;
+      summary: string;
+    }) => adminApi.customers.addCall(input),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.customer(variables.userId) });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: ["enrollments"] });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
 }

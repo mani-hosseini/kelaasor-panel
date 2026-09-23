@@ -9,8 +9,12 @@ export const routes = {
   bootcampNew: "/bootcamps/new",
   bootcamp: (id: number | string) => `/bootcamps/${id}`,
   bootcampEdit: (id: number | string) => `/bootcamps/${id}/edit`,
-  users: "/users",
-  user: (id: number | string) => `/users/${id}`,
+  customers: "/customers",
+  customer: (id: number | string) => `/customers/${id}`,
+  /** @deprecated use customers */
+  users: "/customers",
+  /** @deprecated use customer */
+  user: (id: number | string) => `/customers/${id}`,
   instructors: "/instructors",
   instructor: (id: number | string) => `/instructors/${id}`,
   blog: "/blog",

@@ -4,6 +4,7 @@ import {
   type BlogPostInput,
   type Bootcamp,
   type BootcampInput,
+  type CallOutcome,
   type EnrollmentStatus,
   type InstructorInput,
   type ListParams,
@@ -72,6 +73,20 @@ export const adminApi = {
     get: (id: number) => run(() => mockStore.getUser(id)),
     update: (id: number, patch: { isActive?: boolean; firstName?: string; lastName?: string }) =>
       run(() => mockStore.updateUser(id, patch)),
+  },
+  customers: {
+    list: (params?: ListParams) => run(() => mockStore.listCustomers(params)),
+    get: (id: number) => run(() => mockStore.getCustomerDetail(id)),
+    addNote: (userId: number, body: string) => run(() => mockStore.addCustomerNote(userId, body)),
+    deleteNote: (noteId: number) => run(() => mockStore.deleteCustomerNote(noteId)),
+    addCall: (input: {
+      userId: number;
+      enrollmentId?: number | null;
+      calledAt?: string;
+      durationMinutes?: number | null;
+      outcome: CallOutcome;
+      summary: string;
+    }) => run(() => mockStore.addCustomerCall(input)),
   },
   instructors: {
     list: (params?: ListParams) => run(() => mockStore.listInstructors(params)),

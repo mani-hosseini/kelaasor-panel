@@ -1,5 +1,6 @@
 import {
   BLOG_STATUS,
+  CALL_OUTCOME,
   ENROLLMENT_STATUS,
   NEXT_STEP_BY,
   type AdminUser,
@@ -8,6 +9,11 @@ import {
   type BlogPostInput,
   type Bootcamp,
   type BootcampInput,
+  type CallOutcome,
+  type CustomerCall,
+  type CustomerDetail,
+  type CustomerListItem,
+  type CustomerNote,
   type DashboardStats,
   type Enrollment,
   type EnrollmentStatus,
@@ -23,6 +29,9 @@ import {
   blogCategories as seedCategories,
   blogPosts as seedPosts,
   bootcamps as seedBootcamps,
+  callOutcomeLabels,
+  customerCalls as seedCalls,
+  customerNotes as seedNotes,
   enrollments as seedEnrollments,
   instructors as seedInstructors,
   payments as seedPayments,
@@ -31,6 +40,7 @@ import {
   users as seedUsers,
   enrollmentStatusMeta,
 } from "@/lib/api/mock/seed";
+import { routes } from "@/lib/routes";
 
 type Store = {
   topics: Topic[];
@@ -40,6 +50,8 @@ type Store = {
   users: AdminUser[];
   enrollments: Enrollment[];
   payments: Payment[];
+  customerNotes: CustomerNote[];
+  customerCalls: CustomerCall[];
   blogCategories: BlogCategory[];
   blogPosts: BlogPost[];
   nextId: number;
@@ -58,6 +70,8 @@ function createStore(): Store {
     users: clone(seedUsers),
     enrollments: clone(seedEnrollments),
     payments: clone(seedPayments),
+    customerNotes: clone(seedNotes),
+    customerCalls: clone(seedCalls),
     blogCategories: clone(seedCategories),
     blogPosts: clone(seedPosts),
     nextId: 1000,
@@ -65,14 +79,14 @@ function createStore(): Store {
 }
 
 const globalStore = globalThis as typeof globalThis & {
-  __kelaasorAdminStore?: Store;
+  __kelaasorAdminStoreV2?: Store;
 };
 
 function db() {
-  if (!globalStore.__kelaasorAdminStore) {
-    globalStore.__kelaasorAdminStore = createStore();
+  if (!globalStore.__kelaasorAdminStoreV2) {
+    globalStore.__kelaasorAdminStoreV2 = createStore();
   }
-  return globalStore.__kelaasorAdminStore;
+  return globalStore.__kelaasorAdminStoreV2;
 }
 
 function id() {
@@ -92,6 +106,37 @@ function refreshEnrollmentLabel(item: Enrollment) {
     item.nextStepBy === NEXT_STEP_BY.ADMIN ? "ادمین" : "کاربر";
 }
 
+function toCustomerListItem(user: AdminUser): CustomerListItem {
+  const store = db();
+  const enrollments = store.enrollments
+    .filter((item) => item.userId === user.id)
+    .sort((a, b) => +new Date(b.enrolledAt) - +new Date(a.enrolledAt));
+  const active =
+    enrollments.find(
+      (item) =>
+        item.status !== ENROLLMENT_STATUS.CANCELED &&
+        item.status !== ENROLLMENT_STATUS.CONFIRMED,
+    ) ??
+    enrollments[0] ??
+    null;
+  const notes = store.customerNotes.filter((item) => item.userId === user.id);
+  const calls = store.customerCalls
+    .filter((item) => item.userId === user.id)
+    .sort((a, b) => +new Date(b.calledAt) - +new Date(a.calledAt));
+  return {
+    ...user,
+    enrollmentCount: enrollments.length,
+    activeEnrollmentStatus: active?.status ?? null,
+    activeEnrollmentLabel: active?.statusLabel ?? null,
+    activeBootcampTitle: active
+      ? (store.bootcamps.find((b) => b.id === active.bootcampId)?.title ?? null)
+      : null,
+    notesCount: notes.length,
+    callsCount: calls.length,
+    lastCallAt: calls[0]?.calledAt ?? null,
+  };
+}
+
 export const mockStore = {
   dashboard(): DashboardStats {
     const store = db();
@@ -104,6 +149,12 @@ export const mockStore = {
     const awaitingPay = store.enrollments.filter(
       (item) => item.status === ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION,
     );
+    const awaitingCall = store.enrollments.filter(
+      (item) =>
+        item.status === ENROLLMENT_STATUS.THINKING ||
+        item.status === ENROLLMENT_STATUS.NO_ANSWER ||
+        item.status === ENROLLMENT_STATUS.INITIAL,
+    );
     const monthStart = new Date();
     monthStart.setDate(1);
     const confirmedThisMonth = store.enrollments.filter(
@@ -113,9 +164,22 @@ export const mockStore = {
     ).length;
     const estimatedRevenue = store.payments.reduce((sum, p) => sum + p.totalAmount, 0);
     const collectedRevenue = store.payments.reduce((sum, p) => sum + p.paidAmount, 0);
+    const unpaidAmount = Math.max(estimatedRevenue - collectedRevenue, 0);
+    const openQueue = pendingAdmin.length + awaitingPay.length;
+    const closedLike = store.enrollments.filter(
+      (item) =>
+        item.status === ENROLLMENT_STATUS.CONFIRMED ||
+        item.status === ENROLLMENT_STATUS.CANCELED,
+    ).length;
+    const adminQueueProgress =
+      openQueue + closedLike === 0
+        ? 100
+        : Math.round((closedLike / (openQueue + closedLike)) * 100);
+
     const funnelOrder: EnrollmentStatus[] = [
       ENROLLMENT_STATUS.INITIAL,
       ENROLLMENT_STATUS.THINKING,
+      ENROLLMENT_STATUS.NO_ANSWER,
       ENROLLMENT_STATUS.WAITING_FOR_COMPLETE_INFORMATION,
       ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_RECEIPT,
       ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION,
@@ -133,14 +197,54 @@ export const mockStore = {
       }).length;
       return { week: `هفته ${8 - index}`, count };
     });
+
+    const priorityCustomers = store.users
+      .filter((u) => !u.isStaff)
+      .map(toCustomerListItem)
+      .filter(
+        (item) =>
+          item.activeEnrollmentStatus === ENROLLMENT_STATUS.THINKING ||
+          item.activeEnrollmentStatus === ENROLLMENT_STATUS.NO_ANSWER ||
+          item.activeEnrollmentStatus ===
+            ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION ||
+          item.activeEnrollmentStatus === ENROLLMENT_STATUS.INITIAL,
+      )
+      .slice(0, 6);
+
+    const todayTasks = [
+      ...pendingAdmin.slice(0, 4).map((item) => {
+        const user = store.users.find((u) => u.id === item.userId);
+        return {
+          id: `enr-${item.id}`,
+          title: `پیگیری ثبت‌نام ${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
+          meta: item.statusLabel,
+          href: routes.customer(item.userId),
+          done: false,
+        };
+      }),
+      ...awaitingPay.slice(0, 2).map((item) => {
+        const user = store.users.find((u) => u.id === item.userId);
+        return {
+          id: `pay-${item.id}`,
+          title: `تأیید فیش ${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
+          meta: "منتظر بررسی پرداخت",
+          href: item.paymentId ? routes.payment(item.paymentId) : routes.enrollment(item.id),
+          done: false,
+        };
+      }),
+    ].slice(0, 6);
+
     return {
       totalUsers: store.users.filter((u) => !u.isStaff).length,
       activeBootcamps: store.bootcamps.filter((b) => b.currentEvent).length,
       pendingAdminActions: pendingAdmin.length,
       awaitingPaymentVerification: awaitingPay.length,
+      awaitingCounselorCall: awaitingCall.length,
       confirmedThisMonth,
       estimatedRevenue,
       collectedRevenue,
+      unpaidAmount,
+      adminQueueProgress,
       funnel: funnelOrder.map((status) => ({
         status,
         label: enrollmentStatusMeta[status].label,
@@ -150,6 +254,34 @@ export const mockStore = {
       recentEnrollments: [...store.enrollments]
         .sort((a, b) => +new Date(b.enrolledAt) - +new Date(a.enrolledAt))
         .slice(0, 6),
+      priorityCustomers,
+      quickLinks: [
+        {
+          id: "customers",
+          title: "همه مشتریان",
+          description: "پروفایل، یادداشت و تماس‌ها",
+          href: routes.customers,
+          count: store.users.filter((u) => !u.isStaff).length,
+        },
+        {
+          id: "queue",
+          title: "صف عملیات ادمین",
+          description: "ثبت‌نام‌های منتظر اقدام شما",
+          href: routes.enrollments,
+          count: pendingAdmin.length,
+        },
+        {
+          id: "payments",
+          title: "تأیید پرداخت",
+          description: "فیش و چک در انتظار بررسی",
+          href: routes.payments,
+          count: awaitingPay.length,
+        },
+      ],
+      todayTasks,
+      recentCalls: [...store.customerCalls]
+        .sort((a, b) => +new Date(b.calledAt) - +new Date(a.calledAt))
+        .slice(0, 5),
     };
   },
 
@@ -157,7 +289,11 @@ export const mockStore = {
     const store = db();
     return store.enrollments
       .filter((item) => {
-        if (params.status !== undefined && params.status !== "" && Number(params.status) !== item.status) {
+        if (
+          params.status !== undefined &&
+          params.status !== "" &&
+          Number(params.status) !== item.status
+        ) {
           return false;
         }
         if (params.bootcampId && item.bootcampId !== params.bootcampId) return false;
@@ -185,6 +321,7 @@ export const mockStore = {
     } else if (
       status === ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION ||
       status === ENROLLMENT_STATUS.THINKING ||
+      status === ENROLLMENT_STATUS.NO_ANSWER ||
       status === ENROLLMENT_STATUS.INITIAL
     ) {
       item.nextStepBy = NEXT_STEP_BY.ADMIN;
@@ -238,7 +375,9 @@ export const mockStore = {
     installment.isPaid = true;
     installment.paidAt = new Date().toISOString();
     installment.paymentReceipt = installment.paymentReceipt ?? "/receipts/mock.jpg";
-    const paid = payment.installments.filter((row) => row.isPaid).reduce((sum, row) => sum + row.amount, 0);
+    const paid = payment.installments
+      .filter((row) => row.isPaid)
+      .reduce((sum, row) => sum + row.amount, 0);
     payment.paidAmount = paid;
     payment.paidPercentage = Math.round((paid / payment.totalAmount) * 100);
     payment.paymentStatus =
@@ -327,8 +466,92 @@ export const mockStore = {
     );
   },
 
+  listCustomers(params: { search?: string; status?: number | string } = {}): CustomerListItem[] {
+    return this.listUsers(params)
+      .filter((item) => !item.isStaff)
+      .map(toCustomerListItem)
+      .filter((item) => {
+        if (params.status === undefined || params.status === "") return true;
+        return item.activeEnrollmentStatus === Number(params.status);
+      });
+  },
+
   getUser(userId: number) {
     return db().users.find((item) => item.id === userId) ?? null;
+  },
+
+  getCustomerDetail(userId: number): CustomerDetail | null {
+    const user = this.getUser(userId);
+    if (!user || user.isStaff) return null;
+    const store = db();
+    return {
+      user,
+      enrollments: store.enrollments
+        .filter((item) => item.userId === userId)
+        .sort((a, b) => +new Date(b.enrolledAt) - +new Date(a.enrolledAt)),
+      notes: store.customerNotes
+        .filter((item) => item.userId === userId)
+        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)),
+      calls: store.customerCalls
+        .filter((item) => item.userId === userId)
+        .sort((a, b) => +new Date(b.calledAt) - +new Date(a.calledAt)),
+    };
+  },
+
+  addCustomerNote(userId: number, body: string) {
+    if (!body.trim()) throw new Error("متن یادداشت خالی است.");
+    if (!this.getUser(userId)) throw new Error("مشتری پیدا نشد.");
+    const note: CustomerNote = {
+      id: id(),
+      userId,
+      body: body.trim(),
+      authorName: "مدیر کلاسور",
+      createdAt: new Date().toISOString(),
+    };
+    db().customerNotes.unshift(note);
+    return note;
+  },
+
+  deleteCustomerNote(noteId: number) {
+    const store = db();
+    store.customerNotes = store.customerNotes.filter((item) => item.id !== noteId);
+  },
+
+  addCustomerCall(input: {
+    userId: number;
+    enrollmentId?: number | null;
+    calledAt?: string;
+    durationMinutes?: number | null;
+    outcome: CallOutcome;
+    summary: string;
+  }) {
+    if (!input.summary.trim()) throw new Error("خلاصه تماس خالی است.");
+    if (!this.getUser(input.userId)) throw new Error("مشتری پیدا نشد.");
+    const call: CustomerCall = {
+      id: id(),
+      userId: input.userId,
+      enrollmentId: input.enrollmentId ?? null,
+      calledAt: input.calledAt ?? new Date().toISOString(),
+      durationMinutes: input.durationMinutes ?? null,
+      outcome: input.outcome,
+      outcomeLabel: callOutcomeLabels[input.outcome] ?? input.outcome,
+      summary: input.summary.trim(),
+      authorName: "مدیر کلاسور",
+    };
+    db().customerCalls.unshift(call);
+
+    if (input.outcome === CALL_OUTCOME.NO_ANSWER && input.enrollmentId) {
+      const enrollment = this.getEnrollment(input.enrollmentId);
+      if (
+        enrollment &&
+        (enrollment.status === ENROLLMENT_STATUS.THINKING ||
+          enrollment.status === ENROLLMENT_STATUS.INITIAL)
+      ) {
+        this.updateEnrollmentStatus(input.enrollmentId, ENROLLMENT_STATUS.NO_ANSWER);
+      }
+    }
+
+    return call;
   },
 
   updateUser(userId: number, patch: Partial<AdminUser>) {
@@ -411,7 +634,8 @@ export const mockStore = {
     Object.assign(post, input);
     if (input.categoryId) {
       post.categoryTitle =
-        db().blogCategories.find((item) => item.id === input.categoryId)?.title ?? post.categoryTitle;
+        db().blogCategories.find((item) => item.id === input.categoryId)?.title ??
+        post.categoryTitle;
     }
     if (input.status === BLOG_STATUS.PUBLISHED && !post.publishedAt) {
       post.publishedAt = new Date().toISOString();
