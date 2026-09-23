@@ -1,5 +1,6 @@
 import {
   BLOG_STATUS,
+  CALL_OUTCOME,
   ENROLLMENT_STATUS,
   NEXT_STEP_BY,
   PAYMENT_TYPE,
@@ -7,6 +8,8 @@ import {
   type BlogCategory,
   type BlogPost,
   type Bootcamp,
+  type CustomerCall,
+  type CustomerNote,
   type Enrollment,
   type Instructor,
   type Payment,
@@ -20,7 +23,8 @@ export const enrollmentStatusMeta: Record<
 > = {
   [ENROLLMENT_STATUS.CANCELED]: { label: "لغو شده", tone: "danger" },
   [ENROLLMENT_STATUS.INITIAL]: { label: "پیش‌ثبت‌نام", tone: "neutral" },
-  [ENROLLMENT_STATUS.THINKING]: { label: "در حال فکر", tone: "info" },
+  [ENROLLMENT_STATUS.THINKING]: { label: "منتظر تماس مشاور", tone: "info" },
+  [ENROLLMENT_STATUS.NO_ANSWER]: { label: "تماس بی‌پاسخ", tone: "warning" },
   [ENROLLMENT_STATUS.WAITING_FOR_COMPLETE_INFORMATION]: {
     label: "تکمیل اطلاعات",
     tone: "warning",
@@ -34,6 +38,13 @@ export const enrollmentStatusMeta: Record<
     tone: "warning",
   },
   [ENROLLMENT_STATUS.CONFIRMED]: { label: "تأیید نهایی", tone: "success" },
+};
+
+export const callOutcomeLabels: Record<string, string> = {
+  answered: "پاسخ داد",
+  no_answer: "بی‌پاسخ",
+  callback: "درخواست تماس مجدد",
+  busy: "خط مشغول",
 };
 
 export const educationLevels: Record<number, string> = {
@@ -560,13 +571,113 @@ export const enrollments: Enrollment[] = [
   enrollment(6, 6, 3, ENROLLMENT_STATUS.INITIAL, NEXT_STEP_BY.ADMIN, 2, null),
   enrollment(7, 8, 5, ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION, NEXT_STEP_BY.ADMIN, 1, 4, "چک + فیش قسط اول."),
   enrollment(8, 9, 1, ENROLLMENT_STATUS.INITIAL, NEXT_STEP_BY.ADMIN, 1, null),
-  enrollment(9, 10, 4, ENROLLMENT_STATUS.THINKING, NEXT_STEP_BY.ADMIN, 1, null),
+  enrollment(9, 10, 4, ENROLLMENT_STATUS.NO_ANSWER, NEXT_STEP_BY.ADMIN, 1, null, "دو بار تماس؛ هنوز پاسخ نداده."),
   enrollment(10, 7, 2, ENROLLMENT_STATUS.CANCELED, NEXT_STEP_BY.ADMIN, 25, null, "انصراف قبل از پرداخت."),
   enrollment(11, 1, 3, ENROLLMENT_STATUS.CONFIRMED, NEXT_STEP_BY.USER, 40, 5),
   enrollment(12, 2, 4, ENROLLMENT_STATUS.WAITING_FOR_COMPLETE_INFORMATION, NEXT_STEP_BY.USER, 2, null),
   enrollment(13, 3, 5, ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_RECEIPT, NEXT_STEP_BY.USER, 2, 6),
   enrollment(14, 4, 1, ENROLLMENT_STATUS.INITIAL, NEXT_STEP_BY.ADMIN, 0, null),
   enrollment(15, 5, 2, ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION, NEXT_STEP_BY.ADMIN, 0, 7),
+];
+
+export const customerNotes: CustomerNote[] = [
+  {
+    id: 1,
+    userId: 1,
+    body: "دانشجوی قوی؛ علاقه‌مند به کار تیمی و پروژه واقعی.",
+    authorName: "مدیر کلاسور",
+    createdAt: daysAgo(16, 14),
+  },
+  {
+    id: 2,
+    userId: 2,
+    body: "فیش را دو بار فرستاد؛ بار اول کیفیت پایین بود.",
+    authorName: "مدیر کلاسور",
+    createdAt: daysAgo(4, 11),
+  },
+  {
+    id: 3,
+    userId: 5,
+    body: "ترجیح می‌دهد عصرها تماس گرفته شود (بعد از ۱۷).",
+    authorName: "مدیر کلاسور",
+    createdAt: daysAgo(2, 16),
+  },
+  {
+    id: 4,
+    userId: 3,
+    body: "سؤالاتش درباره اقساط و چک بود؛ توضیح داده شد.",
+    authorName: "مدیر کلاسور",
+    createdAt: daysAgo(5, 12),
+  },
+];
+
+export const customerCalls: CustomerCall[] = [
+  {
+    id: 1,
+    userId: 1,
+    enrollmentId: 1,
+    calledAt: daysAgo(17, 15),
+    durationMinutes: 12,
+    outcome: CALL_OUTCOME.ANSWERED,
+    outcomeLabel: callOutcomeLabels.answered,
+    summary: "توضیح مسیر بوت‌کمپ React و زمان جلسات. آماده ثبت‌نام نهایی شد.",
+    authorName: "مدیر کلاسور",
+  },
+  {
+    id: 2,
+    userId: 5,
+    enrollmentId: 5,
+    calledAt: daysAgo(2, 18),
+    durationMinutes: null,
+    outcome: CALL_OUTCOME.NO_ANSWER,
+    outcomeLabel: callOutcomeLabels.no_answer,
+    summary: "زنگ اول بی‌پاسخ؛ پیامک یادآوری ارسال شد.",
+    authorName: "مدیر کلاسور",
+  },
+  {
+    id: 3,
+    userId: 5,
+    enrollmentId: 5,
+    calledAt: daysAgo(1, 17),
+    durationMinutes: 8,
+    outcome: CALL_OUTCOME.CALLBACK,
+    outcomeLabel: callOutcomeLabels.callback,
+    summary: "صحبت کوتاه؛ می‌خواهد با خانواده مشورت کند و فردا تماس بگیرد.",
+    authorName: "مدیر کلاسور",
+  },
+  {
+    id: 4,
+    userId: 2,
+    enrollmentId: 2,
+    calledAt: daysAgo(5, 10),
+    durationMinutes: 6,
+    outcome: CALL_OUTCOME.ANSWERED,
+    outcomeLabel: callOutcomeLabels.answered,
+    summary: "راهنمایی آپلود فیش کارت‌به‌کارت؛ تأیید کرد همان روز می‌فرستد.",
+    authorName: "مدیر کلاسور",
+  },
+  {
+    id: 5,
+    userId: 10,
+    enrollmentId: 9,
+    calledAt: daysAgo(1, 11),
+    durationMinutes: null,
+    outcome: CALL_OUTCOME.NO_ANSWER,
+    outcomeLabel: callOutcomeLabels.no_answer,
+    summary: "تماس برای پیگیری پیش‌ثبت‌نام دیتا؛ خط آزاد نشد.",
+    authorName: "مدیر کلاسور",
+  },
+  {
+    id: 6,
+    userId: 4,
+    enrollmentId: 4,
+    calledAt: daysAgo(3, 13),
+    durationMinutes: 10,
+    outcome: CALL_OUTCOME.ANSWERED,
+    outcomeLabel: callOutcomeLabels.answered,
+    summary: "فرم اطلاعات تکمیلی را توضیح دادیم؛ قول داد امشب تکمیل کند.",
+    authorName: "مدیر کلاسور",
+  },
 ];
 
 export const payments: Payment[] = [

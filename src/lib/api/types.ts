@@ -2,11 +2,32 @@ export const ENROLLMENT_STATUS = {
   CANCELED: -1,
   INITIAL: 10,
   THINKING: 20,
+  NO_ANSWER: 25,
   WAITING_FOR_COMPLETE_INFORMATION: 30,
   WAITING_FOR_PAYMENT_RECEIPT: 40,
   WAITING_FOR_PAYMENT_VERIFICATION: 50,
   CONFIRMED: 60,
 } as const;
+
+/** Ordered funnel stages shown in customer CRM (excludes canceled). */
+export const ENROLLMENT_PIPELINE: EnrollmentStatus[] = [
+  ENROLLMENT_STATUS.INITIAL,
+  ENROLLMENT_STATUS.THINKING,
+  ENROLLMENT_STATUS.NO_ANSWER,
+  ENROLLMENT_STATUS.WAITING_FOR_COMPLETE_INFORMATION,
+  ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_RECEIPT,
+  ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION,
+  ENROLLMENT_STATUS.CONFIRMED,
+];
+
+export const CALL_OUTCOME = {
+  ANSWERED: "answered",
+  NO_ANSWER: "no_answer",
+  CALLBACK: "callback",
+  BUSY: "busy",
+} as const;
+
+export type CallOutcome = (typeof CALL_OUTCOME)[keyof typeof CALL_OUTCOME];
 
 export type EnrollmentStatus =
   (typeof ENROLLMENT_STATUS)[keyof typeof ENROLLMENT_STATUS];
@@ -142,6 +163,45 @@ export type AdminUser = {
   profile: UserProfile;
 };
 
+/** Free-form admin notes on a customer (not tied to enrollment status). */
+export type CustomerNote = {
+  id: number;
+  userId: number;
+  body: string;
+  authorName: string;
+  createdAt: string;
+};
+
+/** Dated call / conversation log with a customer. */
+export type CustomerCall = {
+  id: number;
+  userId: number;
+  enrollmentId: number | null;
+  calledAt: string;
+  durationMinutes: number | null;
+  outcome: CallOutcome;
+  outcomeLabel: string;
+  summary: string;
+  authorName: string;
+};
+
+export type CustomerListItem = AdminUser & {
+  enrollmentCount: number;
+  activeEnrollmentStatus: EnrollmentStatus | null;
+  activeEnrollmentLabel: string | null;
+  activeBootcampTitle: string | null;
+  notesCount: number;
+  callsCount: number;
+  lastCallAt: string | null;
+};
+
+export type CustomerDetail = {
+  user: AdminUser;
+  enrollments: Enrollment[];
+  notes: CustomerNote[];
+  calls: CustomerCall[];
+};
+
 export type Enrollment = {
   id: number;
   userId: number;
@@ -216,17 +276,40 @@ export type BlogCategory = {
   slug: string;
 };
 
+export type DashboardQuickLink = {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  count: number;
+};
+
+export type DashboardTaskItem = {
+  id: string;
+  title: string;
+  meta: string;
+  href: string;
+  done: boolean;
+};
+
 export type DashboardStats = {
   totalUsers: number;
   activeBootcamps: number;
   pendingAdminActions: number;
   awaitingPaymentVerification: number;
+  awaitingCounselorCall: number;
   confirmedThisMonth: number;
   estimatedRevenue: number;
   collectedRevenue: number;
+  unpaidAmount: number;
+  adminQueueProgress: number;
   funnel: { status: EnrollmentStatus; label: string; count: number }[];
   weeklyEnrollments: { week: string; count: number }[];
   recentEnrollments: Enrollment[];
+  priorityCustomers: CustomerListItem[];
+  quickLinks: DashboardQuickLink[];
+  todayTasks: DashboardTaskItem[];
+  recentCalls: CustomerCall[];
 };
 
 export type ListParams = {
