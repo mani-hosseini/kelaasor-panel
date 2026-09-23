@@ -44,7 +44,7 @@ export function DataTable<TData>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter: controlled ? searchValue : globalFilter },
+    state: { sorting, globalFilter: controlled ? "" : globalFilter },
     onSortingChange: setSorting,
     onGlobalFilterChange: controlled ? undefined : setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -64,12 +64,12 @@ export function DataTable<TData>({
           value={search}
           onChange={(event) => setSearch?.(event.target.value)}
           placeholder={searchPlaceholder}
-          className="max-w-sm"
+          className="max-w-sm text-right"
         />
         {toolbar}
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-border">
-        <table className="w-full min-w-200 text-right text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-border" dir="rtl">
+        <table className="w-full min-w-[52rem] text-right text-sm">
           <thead className="bg-muted/70 text-muted-foreground">
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
