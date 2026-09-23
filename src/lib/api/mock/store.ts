@@ -10,6 +10,7 @@ import {
   type Bootcamp,
   type BootcampInput,
   type CallOutcome,
+  type CustomerActivity,
   type CustomerCall,
   type CustomerDetail,
   type CustomerListItem,
@@ -19,6 +20,7 @@ import {
   type EnrollmentStatus,
   type Instructor,
   type InstructorInput,
+  type ListParams,
   type Payment,
   type Sponsor,
   type SponsorInput,
@@ -79,14 +81,14 @@ function createStore(): Store {
 }
 
 const globalStore = globalThis as typeof globalThis & {
-  __kelaasorAdminStoreV2?: Store;
+  __kelaasorAdminStoreV3?: Store;
 };
 
 function db() {
-  if (!globalStore.__kelaasorAdminStoreV2) {
-    globalStore.__kelaasorAdminStoreV2 = createStore();
+  if (!globalStore.__kelaasorAdminStoreV3) {
+    globalStore.__kelaasorAdminStoreV3 = createStore();
   }
-  return globalStore.__kelaasorAdminStoreV2;
+  return globalStore.__kelaasorAdminStoreV3;
 }
 
 function id() {
@@ -106,6 +108,93 @@ function refreshEnrollmentLabel(item: Enrollment) {
     item.nextStepBy === NEXT_STEP_BY.ADMIN ? "ادمین" : "کاربر";
 }
 
+function startOfDay(value = new Date()) {
+  const d = new Date(value);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function followUpState(followUpAt: string | null): CustomerListItem["followUpState"] {
+  if (!followUpAt) return "none";
+  const target = startOfDay(new Date(followUpAt));
+  const today = startOfDay();
+  const diff = target.getTime() - today.getTime();
+  if (diff < 0) return "overdue";
+  if (diff === 0) return "today";
+  return "upcoming";
+}
+
+function isColdCustomer(item: CustomerListItem) {
+  if (item.activeEnrollmentStatus === ENROLLMENT_STATUS.CONFIRMED) return false;
+  if (item.activeEnrollmentStatus === ENROLLMENT_STATUS.CANCELED) return false;
+  const last = item.lastActivityAt ? new Date(item.lastActivityAt).getTime() : 0;
+  const week = 7 * 86_400_000;
+  return Date.now() - last > week;
+}
+
+function buildActivity(userId: number): CustomerActivity[] {
+  const store = db();
+  const activities: CustomerActivity[] = [];
+
+  for (const note of store.customerNotes.filter((item) => item.userId === userId)) {
+    activities.push({
+      id: `note-${note.id}`,
+      kind: "note",
+      title: "یادداشت ادمین",
+      body: note.body,
+      at: note.createdAt,
+      meta: note.authorName,
+    });
+  }
+
+  for (const call of store.customerCalls.filter((item) => item.userId === userId)) {
+    activities.push({
+      id: `call-${call.id}`,
+      kind: "call",
+      title: `تماس — ${call.outcomeLabel}`,
+      body: call.summary,
+      at: call.calledAt,
+      meta:
+        call.durationMinutes != null
+          ? `${call.durationMinutes} دقیقه · ${call.authorName}`
+          : call.authorName,
+    });
+  }
+
+  for (const enrollment of store.enrollments.filter((item) => item.userId === userId)) {
+    const bootcamp = store.bootcamps.find((b) => b.id === enrollment.bootcampId);
+    activities.push({
+      id: `enr-${enrollment.id}`,
+      kind: "enrollment",
+      title: `ثبت‌نام: ${bootcamp?.title ?? "بوت‌کمپ"}`,
+      body: enrollment.notes
+        ? `${enrollment.statusLabel} — ${enrollment.notes}`
+        : `وضعیت: ${enrollment.statusLabel} · گام بعدی: ${enrollment.nextStepByDisplay}`,
+      at: enrollment.enrolledAt,
+      meta: enrollment.statusLabel,
+    });
+  }
+
+  const user = store.users.find((item) => item.id === userId);
+  if (user?.followUpAt) {
+    activities.push({
+      id: `fu-${userId}`,
+      kind: "followup",
+      title: "یادآوری پیگیری",
+      body:
+        followUpState(user.followUpAt) === "overdue"
+          ? "پیگیری از موعد گذشته است."
+          : followUpState(user.followUpAt) === "today"
+            ? "پیگیری برای امروز تنظیم شده است."
+            : "پیگیری برنامه‌ریزی‌شده.",
+      at: new Date(user.followUpAt).toISOString(),
+      meta: followUpState(user.followUpAt),
+    });
+  }
+
+  return activities.sort((a, b) => +new Date(b.at) - +new Date(a.at));
+}
+
 function toCustomerListItem(user: AdminUser): CustomerListItem {
   const store = db();
   const enrollments = store.enrollments
@@ -123,6 +212,18 @@ function toCustomerListItem(user: AdminUser): CustomerListItem {
   const calls = store.customerCalls
     .filter((item) => item.userId === user.id)
     .sort((a, b) => +new Date(b.calledAt) - +new Date(a.calledAt));
+  const activityDates = [
+    ...notes.map((item) => item.createdAt),
+    ...calls.map((item) => item.calledAt),
+    ...enrollments.map((item) => item.enrolledAt),
+  ]
+    .map((value) => +new Date(value))
+    .filter((value) => Number.isFinite(value));
+  const lastActivityAt =
+    activityDates.length > 0
+      ? new Date(Math.max(...activityDates)).toISOString()
+      : user.createdAt;
+
   return {
     ...user,
     enrollmentCount: enrollments.length,
@@ -134,6 +235,8 @@ function toCustomerListItem(user: AdminUser): CustomerListItem {
     notesCount: notes.length,
     callsCount: calls.length,
     lastCallAt: calls[0]?.calledAt ?? null,
+    lastActivityAt,
+    followUpState: followUpState(user.followUpAt),
   };
 }
 
@@ -198,9 +301,8 @@ export const mockStore = {
       return { week: `هفته ${8 - index}`, count };
     });
 
-    const priorityCustomers = store.users
-      .filter((u) => !u.isStaff)
-      .map(toCustomerListItem)
+    const allCustomers = store.users.filter((u) => !u.isStaff).map(toCustomerListItem);
+    const priorityCustomers = allCustomers
       .filter(
         (item) =>
           item.activeEnrollmentStatus === ENROLLMENT_STATUS.THINKING ||
@@ -210,9 +312,25 @@ export const mockStore = {
           item.activeEnrollmentStatus === ENROLLMENT_STATUS.INITIAL,
       )
       .slice(0, 6);
+    const followUpCustomers = allCustomers
+      .filter((item) => item.followUpState === "today" || item.followUpState === "overdue")
+      .sort((a, b) => {
+        const rank = { overdue: 0, today: 1, upcoming: 2, none: 3 } as const;
+        return rank[a.followUpState] - rank[b.followUpState];
+      })
+      .slice(0, 6);
+    const coldCustomers = allCustomers.filter(isColdCustomer).slice(0, 6);
+    const starredCustomers = allCustomers.filter((item) => item.isStarred).slice(0, 6);
 
     const todayTasks = [
-      ...pendingAdmin.slice(0, 4).map((item) => {
+      ...followUpCustomers.slice(0, 3).map((item) => ({
+        id: `fu-${item.id}`,
+        title: `پیگیری ${item.firstName} ${item.lastName}`,
+        meta: item.followUpState === "overdue" ? "از موعد گذشته" : "یادآوری امروز",
+        href: routes.customer(item.id),
+        done: false,
+      })),
+      ...pendingAdmin.slice(0, 3).map((item) => {
         const user = store.users.find((u) => u.id === item.userId);
         return {
           id: `enr-${item.id}`,
@@ -232,10 +350,10 @@ export const mockStore = {
           done: false,
         };
       }),
-    ].slice(0, 6);
+    ].slice(0, 8);
 
     return {
-      totalUsers: store.users.filter((u) => !u.isStaff).length,
+      totalUsers: allCustomers.length,
       activeBootcamps: store.bootcamps.filter((b) => b.currentEvent).length,
       pendingAdminActions: pendingAdmin.length,
       awaitingPaymentVerification: awaitingPay.length,
@@ -245,6 +363,10 @@ export const mockStore = {
       collectedRevenue,
       unpaidAmount,
       adminQueueProgress,
+      starredCount: allCustomers.filter((item) => item.isStarred).length,
+      overdueFollowUpsCount: allCustomers.filter((item) => item.followUpState === "overdue").length,
+      todayFollowUpsCount: allCustomers.filter((item) => item.followUpState === "today").length,
+      coldCustomersCount: allCustomers.filter(isColdCustomer).length,
       funnel: funnelOrder.map((status) => ({
         status,
         label: enrollmentStatusMeta[status].label,
@@ -255,20 +377,23 @@ export const mockStore = {
         .sort((a, b) => +new Date(b.enrolledAt) - +new Date(a.enrolledAt))
         .slice(0, 6),
       priorityCustomers,
+      followUpCustomers,
+      coldCustomers,
+      starredCustomers,
       quickLinks: [
         {
           id: "customers",
           title: "همه مشتریان",
           description: "پروفایل، یادداشت و تماس‌ها",
           href: routes.customers,
-          count: store.users.filter((u) => !u.isStaff).length,
+          count: allCustomers.length,
         },
         {
-          id: "queue",
-          title: "صف عملیات ادمین",
-          description: "ثبت‌نام‌های منتظر اقدام شما",
-          href: routes.enrollments,
-          count: pendingAdmin.length,
+          id: "followups",
+          title: "پیگیری‌های امروز",
+          description: "یادآوری و موارد از موعد گذشته",
+          href: `${routes.customers}?crm=followup`,
+          count: followUpCustomers.length,
         },
         {
           id: "payments",
@@ -466,13 +591,28 @@ export const mockStore = {
     );
   },
 
-  listCustomers(params: { search?: string; status?: number | string } = {}): CustomerListItem[] {
+  listCustomers(
+    params: { search?: string; status?: number | string; crmFilter?: ListParams["crmFilter"] } = {},
+  ): CustomerListItem[] {
     return this.listUsers(params)
       .filter((item) => !item.isStaff)
       .map(toCustomerListItem)
       .filter((item) => {
-        if (params.status === undefined || params.status === "") return true;
-        return item.activeEnrollmentStatus === Number(params.status);
+        if (params.status !== undefined && params.status !== "") {
+          if (item.activeEnrollmentStatus !== Number(params.status)) return false;
+        }
+        switch (params.crmFilter) {
+          case "starred":
+            return item.isStarred;
+          case "followup":
+            return item.followUpState === "today" || item.followUpState === "overdue";
+          case "overdue":
+            return item.followUpState === "overdue";
+          case "cold":
+            return isColdCustomer(item);
+          default:
+            return true;
+        }
       });
   },
 
@@ -495,7 +635,29 @@ export const mockStore = {
       calls: store.customerCalls
         .filter((item) => item.userId === userId)
         .sort((a, b) => +new Date(b.calledAt) - +new Date(a.calledAt)),
+      activity: buildActivity(userId),
     };
+  },
+
+  toggleCustomerStar(userId: number) {
+    const user = this.getUser(userId);
+    if (!user || user.isStaff) throw new Error("مشتری پیدا نشد.");
+    user.isStarred = !user.isStarred;
+    return user;
+  },
+
+  setCustomerFollowUp(userId: number, followUpAt: string | null) {
+    const user = this.getUser(userId);
+    if (!user || user.isStaff) throw new Error("مشتری پیدا نشد.");
+    user.followUpAt = followUpAt;
+    return user;
+  },
+
+  setCustomerTags(userId: number, crmTags: string[]) {
+    const user = this.getUser(userId);
+    if (!user || user.isStaff) throw new Error("مشتری پیدا نشد.");
+    user.crmTags = crmTags.map((tag) => tag.trim()).filter(Boolean).slice(0, 6);
+    return user;
   },
 
   addCustomerNote(userId: number, body: string) {

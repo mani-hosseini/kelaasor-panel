@@ -161,6 +161,23 @@ export type AdminUser = {
   isActive: boolean;
   createdAt: string;
   profile: UserProfile;
+  /** Marked for quick access on dashboard. */
+  isStarred: boolean;
+  /** Next scheduled admin follow-up (ISO). */
+  followUpAt: string | null;
+  /** Lightweight CRM labels e.g. VIP, اقساط. */
+  crmTags: string[];
+};
+
+export type CustomerActivityKind = "note" | "call" | "enrollment" | "followup";
+
+export type CustomerActivity = {
+  id: string;
+  kind: CustomerActivityKind;
+  title: string;
+  body: string;
+  at: string;
+  meta?: string;
 };
 
 /** Free-form admin notes on a customer (not tied to enrollment status). */
@@ -193,6 +210,8 @@ export type CustomerListItem = AdminUser & {
   notesCount: number;
   callsCount: number;
   lastCallAt: string | null;
+  lastActivityAt: string | null;
+  followUpState: "none" | "upcoming" | "today" | "overdue";
 };
 
 export type CustomerDetail = {
@@ -200,6 +219,7 @@ export type CustomerDetail = {
   enrollments: Enrollment[];
   notes: CustomerNote[];
   calls: CustomerCall[];
+  activity: CustomerActivity[];
 };
 
 export type Enrollment = {
@@ -303,10 +323,17 @@ export type DashboardStats = {
   collectedRevenue: number;
   unpaidAmount: number;
   adminQueueProgress: number;
+  starredCount: number;
+  overdueFollowUpsCount: number;
+  todayFollowUpsCount: number;
+  coldCustomersCount: number;
   funnel: { status: EnrollmentStatus; label: string; count: number }[];
   weeklyEnrollments: { week: string; count: number }[];
   recentEnrollments: Enrollment[];
   priorityCustomers: CustomerListItem[];
+  followUpCustomers: CustomerListItem[];
+  coldCustomers: CustomerListItem[];
+  starredCustomers: CustomerListItem[];
   quickLinks: DashboardQuickLink[];
   todayTasks: DashboardTaskItem[];
   recentCalls: CustomerCall[];
@@ -316,6 +343,8 @@ export type ListParams = {
   search?: string;
   status?: number | string;
   bootcampId?: number;
+  /** CRM list filters */
+  crmFilter?: "all" | "starred" | "followup" | "overdue" | "cold";
 };
 
 export type LoginInput = {

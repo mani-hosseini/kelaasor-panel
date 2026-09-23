@@ -87,6 +87,11 @@ export const adminApi = {
       outcome: CallOutcome;
       summary: string;
     }) => run(() => mockStore.addCustomerCall(input)),
+    toggleStar: (userId: number) => run(() => mockStore.toggleCustomerStar(userId)),
+    setFollowUp: (userId: number, followUpAt: string | null) =>
+      run(() => mockStore.setCustomerFollowUp(userId, followUpAt)),
+    setTags: (userId: number, crmTags: string[]) =>
+      run(() => mockStore.setCustomerTags(userId, crmTags)),
   },
   instructors: {
     list: (params?: ListParams) => run(() => mockStore.listInstructors(params)),

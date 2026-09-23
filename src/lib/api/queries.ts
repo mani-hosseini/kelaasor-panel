@@ -241,6 +241,43 @@ export function useAddCustomerCall() {
   });
 }
 
+export function useToggleCustomerStar() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: number) => adminApi.customers.toggleStar(userId),
+    onSuccess: async (_data, userId) => {
+      await client.invalidateQueries({ queryKey: queryKeys.customer(userId) });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useSetCustomerFollowUp() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { userId: number; followUpAt: string | null }) =>
+      adminApi.customers.setFollowUp(input.userId, input.followUpAt),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.customer(variables.userId) });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useSetCustomerTags() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { userId: number; crmTags: string[] }) =>
+      adminApi.customers.setTags(input.userId, input.crmTags),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.customer(variables.userId) });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+}
+
 export function useInstructors(params?: ListParams) {
   return useQuery({
     queryKey: queryKeys.instructors(params),
