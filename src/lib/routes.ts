@@ -21,6 +21,10 @@ export const routes = {
   blogPost: (id: number | string) => `/blog/${id}`,
   topics: "/topics",
   sponsors: "/sponsors",
+  certificates: "/certificates",
+  certificate: (id: number | string) => `/certificates/${id}`,
+  settings: "/settings",
+  partners: "/partners",
 } as const;
 
 export function isNavActive(pathname: string, href: string) {

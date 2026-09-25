@@ -3,13 +3,16 @@ import {
   CALL_OUTCOME,
   ENROLLMENT_STATUS,
   NEXT_STEP_BY,
+  eventStatusLabels,
   type AdminUser,
+  type AppSettings,
   type BlogCategory,
   type BlogPost,
   type BlogPostInput,
   type Bootcamp,
   type BootcampInput,
   type CallOutcome,
+  type Certificate,
   type CustomerActivity,
   type CustomerCall,
   type CustomerDetail,
@@ -21,21 +24,27 @@ import {
   type Instructor,
   type InstructorInput,
   type ListParams,
+  type PartnerCompany,
+  type PartnerCompanyInput,
   type Payment,
   type Sponsor,
   type SponsorInput,
   type Topic,
   type TopicInput,
+  type UserUpdateInput,
 } from "@/lib/api/types";
 import {
+  appSettings as seedSettings,
   blogCategories as seedCategories,
   blogPosts as seedPosts,
   bootcamps as seedBootcamps,
   callOutcomeLabels,
+  certificates as seedCertificates,
   customerCalls as seedCalls,
   customerNotes as seedNotes,
   enrollments as seedEnrollments,
   instructors as seedInstructors,
+  partnerCompanies as seedPartners,
   payments as seedPayments,
   sponsors as seedSponsors,
   topics as seedTopics,
@@ -48,10 +57,13 @@ type Store = {
   topics: Topic[];
   instructors: Instructor[];
   sponsors: Sponsor[];
+  partners: PartnerCompany[];
   bootcamps: Bootcamp[];
   users: AdminUser[];
   enrollments: Enrollment[];
   payments: Payment[];
+  certificates: Certificate[];
+  settings: AppSettings;
   customerNotes: CustomerNote[];
   customerCalls: CustomerCall[];
   blogCategories: BlogCategory[];
@@ -68,10 +80,13 @@ function createStore(): Store {
     topics: clone(seedTopics),
     instructors: clone(seedInstructors),
     sponsors: clone(seedSponsors),
+    partners: clone(seedPartners),
     bootcamps: clone(seedBootcamps),
     users: clone(seedUsers),
     enrollments: clone(seedEnrollments),
     payments: clone(seedPayments),
+    certificates: clone(seedCertificates),
+    settings: clone(seedSettings),
     customerNotes: clone(seedNotes),
     customerCalls: clone(seedCalls),
     blogCategories: clone(seedCategories),
@@ -81,14 +96,14 @@ function createStore(): Store {
 }
 
 const globalStore = globalThis as typeof globalThis & {
-  __kelaasorAdminStoreV3?: Store;
+  __kelaasorAdminStoreV5?: Store;
 };
 
 function db() {
-  if (!globalStore.__kelaasorAdminStoreV3) {
-    globalStore.__kelaasorAdminStoreV3 = createStore();
+  if (!globalStore.__kelaasorAdminStoreV5) {
+    globalStore.__kelaasorAdminStoreV5 = createStore();
   }
-  return globalStore.__kelaasorAdminStoreV3;
+  return globalStore.__kelaasorAdminStoreV5;
 }
 
 function id() {
@@ -367,6 +382,15 @@ export const mockStore = {
       overdueFollowUpsCount: allCustomers.filter((item) => item.followUpState === "overdue").length,
       todayFollowUpsCount: allCustomers.filter((item) => item.followUpState === "today").length,
       coldCustomersCount: allCustomers.filter(isColdCustomer).length,
+      certificatesToIssue: store.enrollments.filter(
+        (item) =>
+          item.status === ENROLLMENT_STATUS.CONFIRMED &&
+          !store.certificates.some((c) => c.enrollmentId === item.id && !c.revoked),
+      ).length,
+      pendingBlogComments: store.blogPosts.reduce(
+        (sum, post) => sum + post.comments.filter((c) => !c.approved).length,
+        0,
+      ),
       funnel: funnelOrder.map((status) => ({
         status,
         label: enrollmentStatusMeta[status].label,
@@ -399,8 +423,19 @@ export const mockStore = {
           id: "payments",
           title: "تأیید پرداخت",
           description: "فیش و چک در انتظار بررسی",
-          href: routes.payments,
+          href: `${routes.payments}?filter=awaiting`,
           count: awaitingPay.length,
+        },
+        {
+          id: "certificates",
+          title: "گواهی‌های قابل صدور",
+          description: "ثبت‌نام‌های تأییدشده بدون گواهی",
+          href: routes.certificates,
+          count: store.enrollments.filter(
+            (item) =>
+              item.status === ENROLLMENT_STATUS.CONFIRMED &&
+              !store.certificates.some((c) => c.enrollmentId === item.id && !c.revoked),
+          ).length,
         },
       ],
       todayTasks,
@@ -454,18 +489,35 @@ export const mockStore = {
       item.nextStepBy = NEXT_STEP_BY.USER;
     }
     refreshEnrollmentLabel(item);
+    if (status === ENROLLMENT_STATUS.CONFIRMED) {
+      this.ensureCertificateForEnrollment(item.id);
+    }
     return item;
   },
 
-  listPayments(params: { search?: string } = {}) {
+  listPayments(params: { search?: string; paymentFilter?: ListParams["paymentFilter"] } = {}) {
     const store = db();
     return store.payments.filter((item) => {
       const user = store.users.find((u) => u.id === item.userId);
       const bootcamp = store.bootcamps.find((b) => b.id === item.bootcampId);
-      return matches(
-        `${user?.firstName} ${user?.lastName} ${bootcamp?.title} ${item.paymentStatus}`,
-        params.search,
-      );
+      if (
+        !matches(
+          `${user?.firstName} ${user?.lastName} ${bootcamp?.title} ${item.paymentStatus}`,
+          params.search,
+        )
+      ) {
+        return false;
+      }
+      if (params.paymentFilter === "awaiting") {
+        return (
+          (!item.verified && Boolean(item.receipt)) ||
+          item.installments.some((row) => row.awaitingVerification)
+        );
+      }
+      if (params.paymentFilter === "installment") {
+        return item.paymentType === 2;
+      }
+      return true;
     });
   },
 
@@ -483,6 +535,11 @@ export const mockStore = {
       payment.paidAmount = payment.totalAmount;
       this.updateEnrollmentStatus(payment.enrollmentId, ENROLLMENT_STATUS.CONFIRMED);
     } else {
+      payment.receipt = null;
+      payment.cheque = null;
+      payment.chequeNumber = null;
+      payment.paidPercentage = 0;
+      payment.paidAmount = 0;
       this.updateEnrollmentStatus(
         payment.enrollmentId,
         ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_RECEIPT,
@@ -498,6 +555,7 @@ export const mockStore = {
     const installment = payment.installments.find((row) => row.id === installmentId);
     if (!installment) throw new Error("قسط پیدا نشد.");
     installment.isPaid = true;
+    installment.awaitingVerification = false;
     installment.paidAt = new Date().toISOString();
     installment.paymentReceipt = installment.paymentReceipt ?? "/receipts/mock.jpg";
     const paid = payment.installments
@@ -510,8 +568,88 @@ export const mockStore = {
     if (payment.paidPercentage >= 100) {
       payment.verified = true;
       this.updateEnrollmentStatus(payment.enrollmentId, ENROLLMENT_STATUS.CONFIRMED);
+    } else if (payment.installments.some((row) => row.awaitingVerification)) {
+      payment.paymentStatus = "در انتظار تأیید قسط";
     }
     return payment;
+  },
+
+  rejectInstallmentReceipt(paymentId: number, installmentId: number) {
+    const payment = this.getPayment(paymentId);
+    if (!payment) throw new Error("پرداخت پیدا نشد.");
+    const installment = payment.installments.find((row) => row.id === installmentId);
+    if (!installment) throw new Error("قسط پیدا نشد.");
+    installment.paymentReceipt = null;
+    installment.awaitingVerification = false;
+    installment.isPaid = false;
+    installment.paidAt = null;
+    payment.paymentStatus = "در انتظار رسید قسط";
+    return payment;
+  },
+
+  ensureCertificateForEnrollment(enrollmentId: number) {
+    const enrollment = this.getEnrollment(enrollmentId);
+    if (!enrollment || enrollment.status !== ENROLLMENT_STATUS.CONFIRMED) return null;
+    const existing = db().certificates.find(
+      (item) => item.enrollmentId === enrollmentId && !item.revoked,
+    );
+    if (existing) return existing;
+    const bootcamp = this.getBootcamp(enrollment.bootcampId);
+    const cert: Certificate = {
+      id: id(),
+      userId: enrollment.userId,
+      enrollmentId: enrollment.id,
+      bootcampId: enrollment.bootcampId,
+      title: `گواهی ${bootcamp?.title ?? "بوت‌کمپ"}`,
+      banner: bootcamp?.banner ?? null,
+      issuedAt: new Date().toISOString(),
+      revoked: false,
+    };
+    db().certificates.unshift(cert);
+    return cert;
+  },
+
+  listCertificates(params: { search?: string } = {}) {
+    const store = db();
+    return store.certificates
+      .filter((item) => {
+        const user = store.users.find((u) => u.id === item.userId);
+        const bootcamp = store.bootcamps.find((b) => b.id === item.bootcampId);
+        return matches(
+          `${user?.firstName} ${user?.lastName} ${bootcamp?.title} ${item.title}`,
+          params.search,
+        );
+      })
+      .sort((a, b) => +new Date(b.issuedAt) - +new Date(a.issuedAt));
+  },
+
+  getCertificate(certificateId: number) {
+    return db().certificates.find((item) => item.id === certificateId) ?? null;
+  },
+
+  issueCertificate(enrollmentId: number) {
+    const enrollment = this.getEnrollment(enrollmentId);
+    if (!enrollment) throw new Error("ثبت‌نام پیدا نشد.");
+    if (enrollment.status !== ENROLLMENT_STATUS.CONFIRMED) {
+      throw new Error("فقط برای ثبت‌نام تأییدشده می‌توان گواهی صادر کرد.");
+    }
+    return this.ensureCertificateForEnrollment(enrollmentId)!;
+  },
+
+  revokeCertificate(certificateId: number) {
+    const cert = this.getCertificate(certificateId);
+    if (!cert) throw new Error("گواهی پیدا نشد.");
+    cert.revoked = true;
+    return cert;
+  },
+
+  getSettings() {
+    return db().settings;
+  },
+
+  updateSettings(patch: Partial<AppSettings>) {
+    Object.assign(db().settings, patch);
+    return db().settings;
   },
 
   listBootcamps(params: { search?: string } = {}) {
@@ -524,26 +662,28 @@ export const mockStore = {
 
   createBootcamp(input: BootcampInput) {
     const store = db();
+    const status = input.eventStatus ?? 1;
     const bootcamp: Bootcamp = {
       id: id(),
       title: input.title,
       slug: input.slug,
       brief: input.brief,
       description: input.description,
-      banner: null,
+      banner: input.banner,
       durationInWeeks: input.durationInWeeks,
       capacity: input.capacity,
       ordering: store.bootcamps.length + 1,
       hasBnpl: input.hasBnpl,
+      installmentCount: input.installmentCount ?? store.settings.defaultInstallmentCount,
       topicId: input.topicId,
-      instructorIds: [],
-      sponsorIds: [],
+      instructorIds: input.instructorIds ?? [],
+      sponsorIds: input.sponsorIds ?? [],
       chapters: [],
       medias: [],
       currentEvent: {
         id: id(),
-        status: 1,
-        statusDisplay: "در حال ثبت‌نام",
+        status,
+        statusDisplay: eventStatusLabels[status] ?? "در حال ثبت‌نام",
         totalEnrollmentsCount: 0,
         confirmedEnrollmentsCount: 0,
         startDate: input.startDate,
@@ -553,7 +693,7 @@ export const mockStore = {
         primaryPrice: input.primaryPrice,
         finalPrice: input.finalPrice,
         capacity: input.capacity,
-        registrationDeadline: input.startDate,
+        registrationDeadline: input.registrationDeadline || input.startDate,
       },
     };
     store.bootcamps.unshift(bootcamp);
@@ -563,7 +703,18 @@ export const mockStore = {
   updateBootcamp(bootcampId: number, input: Partial<BootcampInput> & Partial<Bootcamp>) {
     const bootcamp = this.getBootcamp(bootcampId);
     if (!bootcamp) throw new Error("بوت‌کمپ پیدا نشد.");
-    Object.assign(bootcamp, input);
+    if (input.title != null) bootcamp.title = input.title;
+    if (input.slug != null) bootcamp.slug = input.slug;
+    if (input.brief != null) bootcamp.brief = input.brief;
+    if (input.description != null) bootcamp.description = input.description;
+    if (input.durationInWeeks != null) bootcamp.durationInWeeks = input.durationInWeeks;
+    if (input.capacity != null) bootcamp.capacity = input.capacity;
+    if (input.topicId != null) bootcamp.topicId = input.topicId;
+    if (input.hasBnpl != null) bootcamp.hasBnpl = input.hasBnpl;
+    if (input.installmentCount != null) bootcamp.installmentCount = input.installmentCount;
+    if (input.banner !== undefined) bootcamp.banner = input.banner;
+    if (input.instructorIds) bootcamp.instructorIds = input.instructorIds;
+    if (input.sponsorIds) bootcamp.sponsorIds = input.sponsorIds;
     if (bootcamp.currentEvent) {
       if (input.primaryPrice != null) bootcamp.currentEvent.primaryPrice = input.primaryPrice;
       if (input.finalPrice != null) bootcamp.currentEvent.finalPrice = input.finalPrice;
@@ -576,6 +727,14 @@ export const mockStore = {
         bootcamp.currentEvent.sessionsScheduleHours = input.sessionsScheduleHours;
       }
       if (input.capacity) bootcamp.currentEvent.capacity = input.capacity;
+      if (input.registrationDeadline) {
+        bootcamp.currentEvent.registrationDeadline = input.registrationDeadline;
+      }
+      if (input.eventStatus != null) {
+        bootcamp.currentEvent.status = input.eventStatus;
+        bootcamp.currentEvent.statusDisplay =
+          eventStatusLabels[input.eventStatus] ?? bootcamp.currentEvent.statusDisplay;
+      }
     }
     return bootcamp;
   },
@@ -716,11 +875,58 @@ export const mockStore = {
     return call;
   },
 
-  updateUser(userId: number, patch: Partial<AdminUser>) {
+  updateUser(userId: number, patch: UserUpdateInput) {
     const user = this.getUser(userId);
     if (!user) throw new Error("کاربر پیدا نشد.");
-    Object.assign(user, patch);
+    const { profile, ...rest } = patch;
+    Object.assign(user, rest);
+    if (profile) Object.assign(user.profile, profile);
     return user;
+  },
+
+  setBootcampChapters(
+    bootcampId: number,
+    chapters: Bootcamp["chapters"],
+  ) {
+    const bootcamp = this.getBootcamp(bootcampId);
+    if (!bootcamp) throw new Error("بوت‌کمپ پیدا نشد.");
+    bootcamp.chapters = chapters.map((chapter, index) => ({
+      ...chapter,
+      ordering: index + 1,
+      lessons: chapter.lessons.map((lesson, lessonIndex) => ({
+        ...lesson,
+        ordering: lessonIndex + 1,
+      })),
+    }));
+    return bootcamp;
+  },
+
+  setBootcampMedias(bootcampId: number, medias: Bootcamp["medias"]) {
+    const bootcamp = this.getBootcamp(bootcampId);
+    if (!bootcamp) throw new Error("بوت‌کمپ پیدا نشد.");
+    bootcamp.medias = medias;
+    return bootcamp;
+  },
+
+  listPartners() {
+    return db().partners;
+  },
+
+  createPartner(input: PartnerCompanyInput) {
+    const partner: PartnerCompany = { id: id(), ...input };
+    db().partners.push(partner);
+    return partner;
+  },
+
+  updatePartner(partnerId: number, input: PartnerCompanyInput) {
+    const partner = db().partners.find((item) => item.id === partnerId);
+    if (!partner) throw new Error("شرکت همکار پیدا نشد.");
+    Object.assign(partner, input);
+    return partner;
+  },
+
+  deletePartner(partnerId: number) {
+    db().partners = db().partners.filter((item) => item.id !== partnerId);
   },
 
   listInstructors(params: { search?: string } = {}) {
@@ -737,11 +943,11 @@ export const mockStore = {
     const instructor: Instructor = {
       id: id(),
       fullName: input.fullName,
-      avatar: null,
+      avatar: input.avatar || null,
       jobTitle: input.jobTitle,
       linkedinUrl: input.linkedinUrl,
       company: input.company,
-      companyLogo: null,
+      companyLogo: input.companyLogo || null,
       bio: input.bio,
     };
     db().instructors.unshift(instructor);
@@ -779,7 +985,7 @@ export const mockStore = {
       categoryTitle: category?.title ?? "عمومی",
       excerpt: input.excerpt,
       content: input.content,
-      banner: "",
+      banner: input.banner || "",
       status: input.status,
       publishedAt: input.status === BLOG_STATUS.PUBLISHED ? new Date().toISOString() : null,
       viewCount: 0,

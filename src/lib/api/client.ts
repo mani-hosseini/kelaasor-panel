@@ -12,6 +12,7 @@ import {
   type SessionUser,
   type SponsorInput,
   type TopicInput,
+  type UserUpdateInput,
 } from "@/lib/api/types";
 import { delay } from "@/lib/utils";
 
@@ -59,6 +60,19 @@ export const adminApi = {
     verify: (id: number, approved: boolean) => run(() => mockStore.verifyPayment(id, approved)),
     markInstallmentPaid: (paymentId: number, installmentId: number) =>
       run(() => mockStore.markInstallmentPaid(paymentId, installmentId)),
+    rejectInstallment: (paymentId: number, installmentId: number) =>
+      run(() => mockStore.rejectInstallmentReceipt(paymentId, installmentId)),
+  },
+  certificates: {
+    list: (params?: ListParams) => run(() => mockStore.listCertificates(params)),
+    get: (id: number) => run(() => mockStore.getCertificate(id)),
+    issue: (enrollmentId: number) => run(() => mockStore.issueCertificate(enrollmentId)),
+    revoke: (id: number) => run(() => mockStore.revokeCertificate(id)),
+  },
+  settings: {
+    get: () => run(() => mockStore.getSettings()),
+    update: (patch: Partial<import("@/lib/api/types").AppSettings>) =>
+      run(() => mockStore.updateSettings(patch)),
   },
   bootcamps: {
     list: (params?: ListParams) => run(() => mockStore.listBootcamps(params)),
@@ -67,11 +81,15 @@ export const adminApi = {
     update: (id: number, input: Partial<BootcampInput> & Partial<Bootcamp>) =>
       run(() => mockStore.updateBootcamp(id, input)),
     remove: (id: number) => run(() => mockStore.deleteBootcamp(id)),
+    setChapters: (id: number, chapters: Bootcamp["chapters"]) =>
+      run(() => mockStore.setBootcampChapters(id, chapters)),
+    setMedias: (id: number, medias: Bootcamp["medias"]) =>
+      run(() => mockStore.setBootcampMedias(id, medias)),
   },
   users: {
     list: (params?: ListParams) => run(() => mockStore.listUsers(params)),
     get: (id: number) => run(() => mockStore.getUser(id)),
-    update: (id: number, patch: { isActive?: boolean; firstName?: string; lastName?: string }) =>
+    update: (id: number, patch: UserUpdateInput) =>
       run(() => mockStore.updateUser(id, patch)),
   },
   customers: {
@@ -121,6 +139,14 @@ export const adminApi = {
     create: (input: SponsorInput) => run(() => mockStore.createSponsor(input)),
     update: (id: number, input: SponsorInput) => run(() => mockStore.updateSponsor(id, input)),
     remove: (id: number) => run(() => mockStore.deleteSponsor(id)),
+  },
+  partners: {
+    list: () => run(() => mockStore.listPartners()),
+    create: (input: import("@/lib/api/types").PartnerCompanyInput) =>
+      run(() => mockStore.createPartner(input)),
+    update: (id: number, input: import("@/lib/api/types").PartnerCompanyInput) =>
+      run(() => mockStore.updatePartner(id, input)),
+    remove: (id: number) => run(() => mockStore.deletePartner(id)),
   },
 };
 

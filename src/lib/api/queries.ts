@@ -11,6 +11,7 @@ import type {
   ListParams,
   SponsorInput,
   TopicInput,
+  UserUpdateInput,
 } from "@/lib/api/types";
 
 export const queryKeys = {
@@ -32,6 +33,10 @@ export const queryKeys = {
   blogCategories: ["blog-categories"] as const,
   topics: ["topics"] as const,
   sponsors: ["sponsors"] as const,
+  partners: ["partners"] as const,
+  certificates: (params?: ListParams) => ["certificates", params] as const,
+  certificate: (id: number) => ["certificate", id] as const,
+  settings: ["settings"] as const,
 };
 
 export function useDashboard() {
@@ -105,6 +110,69 @@ export function useMarkInstallmentPaid() {
   });
 }
 
+export function useRejectInstallment() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { paymentId: number; installmentId: number }) =>
+      adminApi.payments.rejectInstallment(input.paymentId, input.installmentId),
+    onSuccess: async () => {
+      await client.invalidateQueries();
+    },
+  });
+}
+
+export function useCertificates(params?: ListParams) {
+  return useQuery({
+    queryKey: queryKeys.certificates(params),
+    queryFn: () => adminApi.certificates.list(params),
+  });
+}
+
+export function useCertificate(id: number) {
+  return useQuery({
+    queryKey: queryKeys.certificate(id),
+    queryFn: () => adminApi.certificates.get(id),
+    enabled: Number.isFinite(id),
+  });
+}
+
+export function useIssueCertificate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (enrollmentId: number) => adminApi.certificates.issue(enrollmentId),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["certificates"] });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useRevokeCertificate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => adminApi.certificates.revoke(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["certificates"] });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useSettings() {
+  return useQuery({ queryKey: queryKeys.settings, queryFn: adminApi.settings.get });
+}
+
+export function useUpdateSettings() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<import("@/lib/api/types").AppSettings>) =>
+      adminApi.settings.update(patch),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.settings });
+    },
+  });
+}
+
 export function useBootcamps(params?: ListParams) {
   return useQuery({
     queryKey: queryKeys.bootcamps(params),
@@ -152,6 +220,30 @@ export function useDeleteBootcamp() {
   });
 }
 
+export function useSetBootcampChapters() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number; chapters: Bootcamp["chapters"] }) =>
+      adminApi.bootcamps.setChapters(input.id, input.chapters),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.bootcamp(variables.id) });
+      await client.invalidateQueries({ queryKey: ["bootcamps"] });
+    },
+  });
+}
+
+export function useSetBootcampMedias() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number; medias: Bootcamp["medias"] }) =>
+      adminApi.bootcamps.setMedias(input.id, input.medias),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.bootcamp(variables.id) });
+      await client.invalidateQueries({ queryKey: ["bootcamps"] });
+    },
+  });
+}
+
 export function useUsers(params?: ListParams) {
   return useQuery({
     queryKey: queryKeys.users(params),
@@ -170,7 +262,7 @@ export function useUser(id: number) {
 export function useUpdateUser() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (input: { id: number; isActive?: boolean; firstName?: string; lastName?: string }) =>
+    mutationFn: (input: { id: number } & UserUpdateInput) =>
       adminApi.users.update(input.id, input),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ["users"] });
@@ -420,6 +512,36 @@ export function useDeleteSponsor() {
     mutationFn: (id: number) => adminApi.sponsors.remove(id),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.sponsors });
+    },
+  });
+}
+
+export function usePartners() {
+  return useQuery({ queryKey: queryKeys.partners, queryFn: adminApi.partners.list });
+}
+
+export function useSavePartner() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      id?: number;
+      data: import("@/lib/api/types").PartnerCompanyInput;
+    }) =>
+      input.id
+        ? adminApi.partners.update(input.id, input.data)
+        : adminApi.partners.create(input.data),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.partners });
+    },
+  });
+}
+
+export function useDeletePartner() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => adminApi.partners.remove(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.partners });
     },
   });
 }
