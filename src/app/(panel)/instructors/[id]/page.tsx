@@ -23,6 +23,8 @@ const schema = z.object({
   company: z.string().min(2),
   linkedinUrl: z.string().url(),
   bio: z.string().min(8),
+  avatar: z.string().nullable(),
+  companyLogo: z.string().nullable(),
 });
 
 export default function InstructorDetailPage() {
@@ -45,6 +47,8 @@ export default function InstructorDetailPage() {
           company: data.company ?? "",
           linkedinUrl: data.linkedinUrl,
           bio: data.bio,
+          avatar: data.avatar,
+          companyLogo: data.companyLogo,
         }} submitting={save.isPending} onSave={(values) => save.mutate({ id, data: values }, { onSuccess: () => toast.success("ذخیره شد") })} />
         <div className="surface-panel p-5">
           <h2 className="mb-3 font-bold">بوت‌کمپ‌های مرتبط</h2>
@@ -76,10 +80,21 @@ function InstructorEditForm({
     defaultValues: initial,
   });
   return (
-    <form className="surface-panel space-y-3 p-5" onSubmit={form.handleSubmit(onSave)}>
+    <form
+      className="surface-panel space-y-3 p-5"
+      onSubmit={form.handleSubmit((values) =>
+        onSave({
+          ...values,
+          avatar: values.avatar?.trim() ? values.avatar.trim() : null,
+          companyLogo: values.companyLogo?.trim() ? values.companyLogo.trim() : null,
+        }),
+      )}
+    >
       <div className="space-y-1.5"><Label>نام</Label><Input {...form.register("fullName")} /></div>
       <div className="space-y-1.5"><Label>عنوان شغلی</Label><Input {...form.register("jobTitle")} /></div>
       <div className="space-y-1.5"><Label>شرکت</Label><Input {...form.register("company")} /></div>
+      <div className="space-y-1.5"><Label>آواتار (URL)</Label><Input dir="ltr" {...form.register("avatar")} /></div>
+      <div className="space-y-1.5"><Label>لوگوی شرکت (URL)</Label><Input dir="ltr" {...form.register("companyLogo")} /></div>
       <div className="space-y-1.5"><Label>لینکدین</Label><Input dir="ltr" {...form.register("linkedinUrl")} /></div>
       <div className="space-y-1.5"><Label>بیو</Label><Textarea {...form.register("bio")} /></div>
       <Button type="submit" disabled={submitting}>ذخیره</Button>

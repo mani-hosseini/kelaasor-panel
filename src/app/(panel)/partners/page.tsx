@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDeleteSponsor, useSaveSponsor, useSponsors } from "@/lib/api/queries";
-import type { SponsorInput } from "@/lib/api/types";
+import { useDeletePartner, usePartners, useSavePartner } from "@/lib/api/queries";
+import type { PartnerCompanyInput } from "@/lib/api/types";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -20,22 +20,22 @@ const schema = z.object({
   logo: z.string().min(1),
 });
 
-export default function SponsorsPage() {
-  const { data = [], isLoading } = useSponsors();
-  const save = useSaveSponsor();
-  const remove = useDeleteSponsor();
+export default function PartnersPage() {
+  const { data = [], isLoading } = usePartners();
+  const save = useSavePartner();
+  const remove = useDeletePartner();
   const [editingId, setEditingId] = useState<number | null>(null);
-  const form = useForm<SponsorInput>({
+  const form = useForm<PartnerCompanyInput>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", website: "https://", logo: "/sponsors/logo.svg" },
+    defaultValues: { name: "", website: "https://", logo: "/partners/logo.svg" },
   });
 
   return (
     <div dir="rtl" className="space-y-6 text-right">
       <PageHeader
         eyebrow="آموزش"
-        title="حامی‌ها"
-        description="لوگو و لینک اسپانسرهایی که روی صفحه بوت‌کمپ نمایش داده می‌شوند."
+        title="شرکای صفحه اصلی"
+        description="لوگوهایی که در بخش Partner Companies سایت کلاسور کمپ نمایش داده می‌شوند (جدا از حامی هر دوره)."
       />
       <form
         className="surface-panel grid gap-3 p-5 sm:grid-cols-3"
@@ -44,9 +44,9 @@ export default function SponsorsPage() {
             { id: editingId ?? undefined, data: values },
             {
               onSuccess: () => {
-                toast.success(editingId ? "به‌روز شد" : "حامی اضافه شد");
+                toast.success(editingId ? "به‌روز شد" : "اضافه شد");
                 setEditingId(null);
-                form.reset({ name: "", website: "https://", logo: "/sponsors/logo.svg" });
+                form.reset({ name: "", website: "https://", logo: "/partners/logo.svg" });
               },
             },
           ),
@@ -63,7 +63,7 @@ export default function SponsorsPage() {
         </Field>
         <div className="flex gap-2 sm:col-span-3">
           <Button type="submit" disabled={save.isPending}>
-            {editingId ? "ذخیره ویرایش" : "افزودن حامی"}
+            {editingId ? "ذخیره ویرایش" : "افزودن شریک"}
           </Button>
           {editingId ? (
             <Button
@@ -71,7 +71,7 @@ export default function SponsorsPage() {
               variant="ghost"
               onClick={() => {
                 setEditingId(null);
-                form.reset({ name: "", website: "https://", logo: "/sponsors/logo.svg" });
+                form.reset({ name: "", website: "https://", logo: "/partners/logo.svg" });
               }}
             >
               انصراف

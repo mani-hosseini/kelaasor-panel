@@ -26,6 +26,8 @@ const schema = z.object({
   company: z.string().min(2),
   linkedinUrl: z.string().url(),
   bio: z.string().min(8),
+  avatar: z.string().nullable(),
+  companyLogo: z.string().nullable(),
 });
 
 export default function InstructorsPage() {
@@ -36,7 +38,15 @@ export default function InstructorsPage() {
   const remove = useDeleteInstructor();
   const form = useForm<InstructorInput>({
     resolver: zodResolver(schema),
-    defaultValues: { fullName: "", jobTitle: "", company: "", linkedinUrl: "https://linkedin.com/in/", bio: "" },
+    defaultValues: {
+      fullName: "",
+      jobTitle: "",
+      company: "",
+      linkedinUrl: "https://linkedin.com/in/",
+      bio: "",
+      avatar: null,
+      companyLogo: null,
+    },
   });
 
   const columns = useMemo<ColumnDef<Instructor>[]>(

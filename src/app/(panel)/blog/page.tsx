@@ -30,6 +30,7 @@ const schema = z.object({
   content: z.string().min(12),
   categoryId: z.coerce.number(),
   status: z.coerce.number(),
+  banner: z.string(),
 });
 
 export default function BlogPage() {
@@ -41,7 +42,15 @@ export default function BlogPage() {
   const remove = useDeleteBlog();
   const form = useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", slug: "", excerpt: "", content: "", categoryId: 1, status: BLOG_STATUS.DRAFT },
+    defaultValues: {
+      title: "",
+      slug: "",
+      excerpt: "",
+      content: "",
+      categoryId: 1,
+      status: BLOG_STATUS.DRAFT,
+      banner: "",
+    },
   });
 
   const columns = useMemo<ColumnDef<BlogPost>[]>(
@@ -124,6 +133,7 @@ export default function BlogPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="بنر (URL)"><Input dir="ltr" {...form.register("banner")} /></Field>
             <Field label="خلاصه"><Textarea {...form.register("excerpt")} /></Field>
             <Field label="متن"><Textarea rows={5} {...form.register("content")} /></Field>
             <Button type="submit" disabled={save.isPending}>ذخیره پیش‌نویس</Button>

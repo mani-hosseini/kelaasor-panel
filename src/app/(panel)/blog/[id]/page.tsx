@@ -26,6 +26,7 @@ const schema = z.object({
   content: z.string().min(12),
   categoryId: z.coerce.number(),
   status: z.coerce.number(),
+  banner: z.string(),
 });
 
 export default function BlogPostPage() {
@@ -50,6 +51,7 @@ export default function BlogPostPage() {
             content: data.content,
             categoryId: data.categoryId,
             status: data.status,
+            banner: data.banner,
           }}
           categories={categories.data ?? []}
           submitting={save.isPending}
@@ -120,6 +122,7 @@ function PostForm({
         </Select>
       </Field>
       <Field label="خلاصه"><Textarea {...form.register("excerpt")} /></Field>
+      <Field label="بنر (URL)"><Input dir="ltr" {...form.register("banner")} /></Field>
       <Field label="متن"><Textarea rows={8} {...form.register("content")} /></Field>
       <Button type="submit" disabled={submitting}>ذخیره پست</Button>
     </form>
