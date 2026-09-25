@@ -94,7 +94,7 @@ export type BootcampChapter = {
 export type BootcampMedia = {
   id: number;
   title: string;
-  mediaType: "file" | "video";
+  mediaType: "file" | "video" | "image";
   file: string;
 };
 
@@ -125,6 +125,7 @@ export type Bootcamp = {
   capacity: number;
   ordering: number;
   hasBnpl: boolean;
+  installmentCount: number;
   topicId: number;
   instructorIds: number[];
   sponsorIds: number[];
@@ -243,6 +244,8 @@ export type PaymentInstallment = {
   isPaid: boolean;
   paidAt: string | null;
   paymentReceipt: string | null;
+  /** When receipt uploaded but admin has not approved yet. */
+  awaitingVerification: boolean;
 };
 
 export type Payment = {
@@ -260,6 +263,26 @@ export type Payment = {
   chequeNumber: string | null;
   verified: boolean;
   installments: PaymentInstallment[];
+};
+
+export type Certificate = {
+  id: number;
+  userId: number;
+  enrollmentId: number;
+  bootcampId: number;
+  title: string;
+  banner: string | null;
+  issuedAt: string;
+  revoked: boolean;
+};
+
+export type AppSettings = {
+  bankCardNumber: string;
+  bankSheba: string;
+  bankOwnerName: string;
+  bankName: string;
+  lmsUrl: string;
+  defaultInstallmentCount: number;
 };
 
 export type BlogComment = {
@@ -327,6 +350,8 @@ export type DashboardStats = {
   overdueFollowUpsCount: number;
   todayFollowUpsCount: number;
   coldCustomersCount: number;
+  certificatesToIssue: number;
+  pendingBlogComments: number;
   funnel: { status: EnrollmentStatus; label: string; count: number }[];
   weeklyEnrollments: { week: string; count: number }[];
   recentEnrollments: Enrollment[];
@@ -345,6 +370,22 @@ export type ListParams = {
   bootcampId?: number;
   /** CRM list filters */
   crmFilter?: "all" | "starred" | "followup" | "overdue" | "cold";
+  /** Payment queue: awaiting | all */
+  paymentFilter?: "all" | "awaiting" | "installment";
+};
+
+export const EVENT_STATUS = {
+  PRE_REGISTERING: 0,
+  REGISTERING: 1,
+  ONGOING: 2,
+  COMPLETED: 3,
+} as const;
+
+export const eventStatusLabels: Record<number, string> = {
+  0: "پیش‌ثبت‌نام",
+  1: "در حال ثبت‌نام",
+  2: "در حال برگزاری",
+  3: "پایان‌یافته",
 };
 
 export type LoginInput = {
@@ -368,10 +409,16 @@ export type BootcampInput = {
   capacity: number;
   topicId: number;
   hasBnpl: boolean;
+  installmentCount: number;
+  banner: string | null;
+  instructorIds: number[];
+  sponsorIds: number[];
   primaryPrice: number;
   finalPrice: number;
   startDate: string;
   endDate: string;
+  registrationDeadline: string;
+  eventStatus: number;
   sessionsScheduleDays: string;
   sessionsScheduleHours: string;
 };
@@ -382,6 +429,8 @@ export type InstructorInput = {
   linkedinUrl: string;
   company: string;
   bio: string;
+  avatar: string | null;
+  companyLogo: string | null;
 };
 
 export type BlogPostInput = {
@@ -391,7 +440,33 @@ export type BlogPostInput = {
   content: string;
   categoryId: number;
   status: number;
+  banner: string;
 };
 
 export type TopicInput = { title: string };
 export type SponsorInput = { name: string; website: string; logo: string };
+
+/** Home-page partner logos (camp `/courses/partner-companies`). */
+export type PartnerCompany = {
+  id: number;
+  name: string;
+  logo: string;
+  website: string;
+};
+
+export type PartnerCompanyInput = {
+  name: string;
+  logo: string;
+  website: string;
+};
+
+export type UserUpdateInput = {
+  isActive?: boolean;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  gender?: number | null;
+  genderDisplay?: string;
+  profile?: Partial<UserProfile>;
+};
