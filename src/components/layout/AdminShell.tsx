@@ -6,7 +6,7 @@ import { Bell, Menu, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { FloatingCrmDock } from "@/components/layout/FloatingCrmDock";
+import { CrmQuickActions } from "@/components/layout/CrmQuickActions";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { AdminSidebar, mobileNav } from "@/components/layout/AdminSidebar";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,14 @@ function resolveTitle(pathname: string) {
   if (pathname.startsWith("/customers") || pathname.startsWith("/users")) return "مشتریان";
   if (pathname.startsWith("/enrollments")) return "ثبت‌نام‌ها";
   if (pathname.startsWith("/payments")) return "پرداخت‌ها";
+  if (pathname.startsWith("/certificates")) return "گواهی‌ها";
+  if (pathname.startsWith("/bootcamps")) return "بوت‌کمپ‌ها";
+  if (pathname.startsWith("/instructors")) return "مدرس‌ها";
+  if (pathname.startsWith("/topics")) return "موضوع‌ها";
+  if (pathname.startsWith("/sponsors")) return "حامی‌ها";
+  if (pathname.startsWith("/partners")) return "شرکای صفحه اصلی";
+  if (pathname.startsWith("/blog")) return "بلاگ";
+  if (pathname.startsWith("/settings")) return "تنظیمات";
   return "پیشخوان";
 }
 
@@ -76,9 +84,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="flex items-center gap-2">
+                <CrmQuickActions className="hidden items-center gap-1.5 md:flex" />
                 <Button
                   variant="outline"
-                  className="hidden h-10 min-w-52 justify-between rounded-xl text-muted-foreground md:inline-flex"
+                  className="hidden h-10 min-w-52 justify-between rounded-xl text-muted-foreground xl:inline-flex"
                   onClick={() => setCommandOpen(true)}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -87,7 +96,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   </span>
                   <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]">Ctrl K</kbd>
                 </Button>
-                <Button variant="outline" size="icon" className="md:hidden" onClick={() => setCommandOpen(true)}>
+                <Button variant="outline" size="icon" className="xl:hidden" onClick={() => setCommandOpen(true)}>
                   <Search className="size-4" />
                 </Button>
                 <Button variant="outline" size="icon" className="relative">
@@ -102,7 +111,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 px-3 py-5 pb-24 sm:px-5 lg:px-8 lg:pb-8">{children}</main>
+          <main className="flex-1 px-3 py-5 pb-24 sm:px-5 lg:px-8 lg:pb-8">
+            <CrmQuickActions className="mb-4 flex items-center gap-1.5 md:hidden" />
+            {children}
+          </main>
         </div>
       </div>
 
@@ -141,7 +153,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
-      <FloatingCrmDock />
     </div>
   );
 }

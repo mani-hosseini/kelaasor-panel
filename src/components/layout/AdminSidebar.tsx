@@ -3,12 +3,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Award,
+  BookOpen,
+  ClipboardList,
   CreditCard,
+  FileText,
+  Handshake,
   LayoutDashboard,
   LogOut,
+  Settings,
   Sparkles,
+  Tags,
+  UserRound,
   Users,
-  ClipboardList,
 } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -27,6 +34,24 @@ const groups = [
       { href: routes.customers, label: "مشتریان", description: "یادداشت، تماس و مراحل", icon: Users },
       { href: routes.enrollments, label: "ثبت‌نام‌ها", description: "صف تأیید", icon: ClipboardList },
       { href: routes.payments, label: "پرداخت‌ها", description: "فیش، چک و اقساط", icon: CreditCard },
+      { href: routes.certificates, label: "گواهی‌ها", description: "صدور و ابطال", icon: Award },
+    ],
+  },
+  {
+    label: "آموزش",
+    items: [
+      { href: routes.bootcamps, label: "بوت‌کمپ‌ها", description: "دوره و رویداد", icon: BookOpen },
+      { href: routes.instructors, label: "مدرس‌ها", description: "منتور و مربی", icon: UserRound },
+      { href: routes.topics, label: "موضوع‌ها", description: "دسته‌بندی بوت‌کمپ", icon: Tags },
+      { href: routes.sponsors, label: "حامی‌ها", description: "لوگو و لینک دوره", icon: Handshake },
+      { href: routes.partners, label: "شرکای صفحه اصلی", description: "لوگوی پارتنر کمپ", icon: Handshake },
+    ],
+  },
+  {
+    label: "محتوا و تنظیمات",
+    items: [
+      { href: routes.blog, label: "بلاگ", description: "پست و کامنت", icon: FileText },
+      { href: routes.settings, label: "تنظیمات", description: "بانک و LMS", icon: Settings },
     ],
   },
 ];
@@ -75,7 +100,7 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
             <div className="min-w-0 text-right">
               <p className="text-xs font-semibold">صف عملیات امروز</p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">
-                مشتریان منتظر تماس و تأیید را از پیشخوان ببینید.
+                پیگیری، فیش و گواهی را از پیشخوان ببینید.
               </p>
             </div>
           </div>
@@ -169,6 +194,6 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
 export const mobileNav = [
   { href: routes.root, label: "پیشخوان", icon: LayoutDashboard },
   { href: routes.customers, label: "مشتریان", icon: Users },
-  { href: routes.enrollments, label: "ثبت‌نام", icon: ClipboardList },
   { href: routes.payments, label: "پرداخت", icon: CreditCard },
+  { href: routes.bootcamps, label: "بوت‌کمپ", icon: BookOpen },
 ] as const;

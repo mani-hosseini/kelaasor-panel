@@ -2,9 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import {
+  Award,
+  BookOpen,
   ClipboardList,
   CreditCard,
+  FileText,
+  Handshake,
   LayoutDashboard,
+  Settings,
+  Tags,
+  UserRound,
   Users,
 } from "lucide-react";
 
@@ -23,6 +30,14 @@ const pages = [
   { href: routes.customers, label: "مشتریان", icon: Users },
   { href: routes.enrollments, label: "ثبت‌نام‌ها", icon: ClipboardList },
   { href: routes.payments, label: "پرداخت‌ها", icon: CreditCard },
+  { href: routes.certificates, label: "گواهی‌ها", icon: Award },
+  { href: routes.bootcamps, label: "بوت‌کمپ‌ها", icon: BookOpen },
+  { href: routes.instructors, label: "مدرس‌ها", icon: UserRound },
+  { href: routes.topics, label: "موضوع‌ها", icon: Tags },
+  { href: routes.sponsors, label: "حامی‌ها", icon: Handshake },
+  { href: routes.partners, label: "شرکای صفحه اصلی", icon: Handshake },
+  { href: routes.blog, label: "بلاگ", icon: FileText },
+  { href: routes.settings, label: "تنظیمات", icon: Settings },
 ];
 
 export function CommandPalette({
