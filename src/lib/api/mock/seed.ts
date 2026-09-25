@@ -5,13 +5,16 @@ import {
   NEXT_STEP_BY,
   PAYMENT_TYPE,
   type AdminUser,
+  type AppSettings,
   type BlogCategory,
   type BlogPost,
   type Bootcamp,
+  type Certificate,
   type CustomerCall,
   type CustomerNote,
   type Enrollment,
   type Instructor,
+  type PartnerCompany,
   type Payment,
   type Sponsor,
   type Topic,
@@ -160,6 +163,7 @@ export const bootcamps: Bootcamp[] = [
     capacity: 30,
     ordering: 1,
     hasBnpl: true,
+    installmentCount: 4,
     topicId: 1,
     instructorIds: [3],
     sponsorIds: [3],
@@ -211,6 +215,7 @@ export const bootcamps: Bootcamp[] = [
     capacity: 28,
     ordering: 2,
     hasBnpl: true,
+    installmentCount: 4,
     topicId: 2,
     instructorIds: [2],
     sponsorIds: [1, 2],
@@ -253,6 +258,7 @@ export const bootcamps: Bootcamp[] = [
     capacity: 24,
     ordering: 3,
     hasBnpl: false,
+    installmentCount: 4,
     topicId: 4,
     instructorIds: [1],
     sponsorIds: [1],
@@ -292,6 +298,7 @@ export const bootcamps: Bootcamp[] = [
     capacity: 22,
     ordering: 4,
     hasBnpl: true,
+    installmentCount: 4,
     topicId: 3,
     instructorIds: [4],
     sponsorIds: [4],
@@ -324,6 +331,7 @@ export const bootcamps: Bootcamp[] = [
     capacity: 26,
     ordering: 5,
     hasBnpl: false,
+    installmentCount: 4,
     topicId: 5,
     instructorIds: [5],
     sponsorIds: [],
@@ -761,9 +769,9 @@ export const payments: Payment[] = [
     chequeNumber: null,
     verified: false,
     installments: [
-      { id: 31, installmentNumber: 1, amount: 8_000_000, dueDate: daysFromNow(3), isPaid: false, paidAt: null, paymentReceipt: null },
-      { id: 32, installmentNumber: 2, amount: 8_000_000, dueDate: daysFromNow(33), isPaid: false, paidAt: null, paymentReceipt: null },
-      { id: 33, installmentNumber: 3, amount: 8_000_000, dueDate: daysFromNow(63), isPaid: false, paidAt: null, paymentReceipt: null },
+      { id: 31, installmentNumber: 1, amount: 8_000_000, dueDate: daysFromNow(3), isPaid: false, paidAt: null, paymentReceipt: null, awaitingVerification: false },
+      { id: 32, installmentNumber: 2, amount: 8_000_000, dueDate: daysFromNow(33), isPaid: false, paidAt: null, paymentReceipt: null, awaitingVerification: false },
+      { id: 33, installmentNumber: 3, amount: 8_000_000, dueDate: daysFromNow(63), isPaid: false, paidAt: null, paymentReceipt: null, awaitingVerification: false },
     ],
   },
   {
@@ -772,7 +780,7 @@ export const payments: Payment[] = [
     userId: 8,
     bootcampId: 5,
     paymentType: PAYMENT_TYPE.INSTALLMENT,
-    paymentStatus: "در انتظار تأیید",
+    paymentStatus: "در انتظار تأیید قسط",
     paidPercentage: 33,
     totalAmount: 15_000_000,
     paidAmount: 5_000_000,
@@ -781,9 +789,9 @@ export const payments: Payment[] = [
     chequeNumber: "۱۲۳۴۵۶",
     verified: false,
     installments: [
-      { id: 41, installmentNumber: 1, amount: 5_000_000, dueDate: daysAgo(1).slice(0, 10), isPaid: true, paidAt: daysAgo(1), paymentReceipt: "/receipts/4.jpg" },
-      { id: 42, installmentNumber: 2, amount: 5_000_000, dueDate: daysFromNow(29), isPaid: false, paidAt: null, paymentReceipt: null },
-      { id: 43, installmentNumber: 3, amount: 5_000_000, dueDate: daysFromNow(59), isPaid: false, paidAt: null, paymentReceipt: null },
+      { id: 41, installmentNumber: 1, amount: 5_000_000, dueDate: daysAgo(1).slice(0, 10), isPaid: true, paidAt: daysAgo(1), paymentReceipt: "/receipts/4.jpg", awaitingVerification: false },
+      { id: 42, installmentNumber: 2, amount: 5_000_000, dueDate: daysFromNow(29), isPaid: false, paidAt: null, paymentReceipt: "/receipts/inst-42.jpg", awaitingVerification: true },
+      { id: 43, installmentNumber: 3, amount: 5_000_000, dueDate: daysFromNow(59), isPaid: false, paidAt: null, paymentReceipt: null, awaitingVerification: false },
     ],
   },
   {
@@ -913,4 +921,44 @@ export const blogPosts: BlogPost[] = [
     createdAt: daysAgo(1),
     comments: [],
   },
+];
+
+export const certificates: Certificate[] = [
+  {
+    id: 1,
+    userId: 1,
+    enrollmentId: 1,
+    bootcampId: 1,
+    title: "گواهی بوت‌کمپ فرانت‌اند React",
+    banner: "/certificates/react.png",
+    issuedAt: daysAgo(10),
+    revoked: false,
+  },
+  {
+    id: 2,
+    userId: 1,
+    enrollmentId: 11,
+    bootcampId: 3,
+    title: "گواهی بوت‌کمپ محصول",
+    banner: "/certificates/product.png",
+    issuedAt: daysAgo(5),
+    revoked: false,
+  },
+];
+
+export const appSettings: AppSettings = {
+  bankCardNumber: "6037-9975-1234-5678",
+  bankSheba: "IR120170000000123456789001",
+  bankOwnerName: "شرکت کلاسور نوآفرین",
+  bankName: "بانک ملی",
+  lmsUrl: "https://lms.kelaasor.com/",
+  defaultInstallmentCount: 4,
+};
+
+/** Logos on camp home (`/courses/partner-companies`). */
+export const partnerCompanies: PartnerCompany[] = [
+  { id: 1, name: "دیجی‌کالا", logo: "/partners/digikala.svg", website: "https://digikala.com" },
+  { id: 2, name: "اسنپ", logo: "/partners/snapp.svg", website: "https://snapp.ir" },
+  { id: 3, name: "کافه‌بازار", logo: "/partners/cafebazaar.svg", website: "https://cafebazaar.ir" },
+  { id: 4, name: "تپسی", logo: "/partners/tapsi.svg", website: "https://tapsi.ir" },
 ];
