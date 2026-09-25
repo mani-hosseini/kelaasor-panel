@@ -56,7 +56,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="میزکار"
         title="پیشخوان عملیات کلاسور"
-        description="نمای CRM از مشتریان، قیف ثبت‌نام بوت‌کمپ و کارهای امروز ادمین."
+        description="نمای CRM از مشتریان، مراحل ثبت‌نام بوت‌کمپ و کارهای امروز ادمین."
         actions={
           <div className="flex flex-wrap justify-start gap-2">
             <Button asChild variant="outline">
@@ -205,7 +205,7 @@ export default function DashboardPage() {
         <WeeklyEnrollmentsChart data={data.weeklyEnrollments} />
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle>قیف ثبت‌نام</CardTitle>
+            <CardTitle>مراحل ثبت‌نام</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.funnel.map((step) => {
