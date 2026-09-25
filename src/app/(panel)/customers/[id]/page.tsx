@@ -7,8 +7,10 @@ import { Copy, Phone, Star, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityTimeline } from "@/components/customers/ActivityTimeline";
+import { CustomerProfileForm } from "@/components/customers/CustomerProfileForm";
 import { EnrollmentPipeline } from "@/components/customers/EnrollmentPipeline";
 import { EnrollmentStatusBadge } from "@/components/enrollments/EnrollmentStatusBadge";
+import { StageActions } from "@/components/enrollments/StageActions";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,36 +37,23 @@ import {
   useSetCustomerFollowUp,
   useSetCustomerTags,
   useToggleCustomerStar,
-  useUpdateEnrollmentStatus,
   useUpdateUser,
 } from "@/lib/api/queries";
 import {
   CALL_OUTCOME,
   ENROLLMENT_STATUS,
   type CallOutcome,
-  type EnrollmentStatus,
 } from "@/lib/api/types";
 import { callOutcomeLabels } from "@/lib/api/mock/seed";
 import { formatJalaliDate, formatJalaliDateTime, toFa } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-const stageActions: { label: string; status: EnrollmentStatus; destructive?: boolean }[] = [
-  { label: "منتظر تماس مشاور", status: ENROLLMENT_STATUS.THINKING },
-  { label: "تماس بی‌پاسخ", status: ENROLLMENT_STATUS.NO_ANSWER },
-  { label: "تماس انجام شد → تکمیل اطلاعات", status: ENROLLMENT_STATUS.WAITING_FOR_COMPLETE_INFORMATION },
-  { label: "منتظر فیش پرداخت", status: ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_RECEIPT },
-  { label: "ارسال به تأیید پرداخت", status: ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION },
-  { label: "تأیید نهایی ثبت‌نام", status: ENROLLMENT_STATUS.CONFIRMED },
-  { label: "لغو ثبت‌نام", status: ENROLLMENT_STATUS.CANCELED, destructive: true },
-];
-
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const { data, isLoading } = useCustomer(id);
   const updateUser = useUpdateUser();
-  const updateStatus = useUpdateEnrollmentStatus();
   const addNote = useAddCustomerNote();
   const deleteNote = useDeleteCustomerNote();
   const addCall = useAddCustomerCall();
@@ -262,6 +251,7 @@ export default function CustomerDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">نمای کلی</TabsTrigger>
+          <TabsTrigger value="profile">ویرایش پروفایل</TabsTrigger>
           <TabsTrigger value="timeline">تایم‌لاین ({toFa(activity.length)})</TabsTrigger>
           <TabsTrigger value="stages">مراحل ثبت‌نام</TabsTrigger>
           <TabsTrigger value="notes">یادداشت‌ها ({toFa(notes.length)})</TabsTrigger>
@@ -388,6 +378,20 @@ export default function CustomerDetailPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="profile" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>اصلاح اطلاعات ثبت‌نام نهایی</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                مشاور می‌تواند فیلدهایی که دانشجو اشتباه وارد کرده را از اینجا درست کند.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <CustomerProfileForm user={user} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="timeline" className="space-y-4">
           <Card>
             <CardHeader>
@@ -406,7 +410,7 @@ export default function CustomerDetailPage() {
           <Card>
             <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>قیف ثبت‌نام سایت کلاسور</CardTitle>
+                <CardTitle>مراحل ثبت‌نام سایت کلاسور</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   همان مراحلی که کاربر در حساب کاربری طی می‌کند؛ ادمین می‌تواند وضعیت را جلو/عقب ببرد.
                 </p>
@@ -446,29 +450,11 @@ export default function CustomerDetailPage() {
                       یادداشت ثبت‌نام: {enrollmentForActions.notes}
                     </p>
                   ) : null}
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {stageActions.map((action) => (
-                      <Button
-                        key={action.status}
-                        variant={action.destructive ? "destructive" : "outline"}
-                        className="justify-start"
-                        disabled={
-                          updateStatus.isPending || enrollmentForActions.status === action.status
-                        }
-                        onClick={() =>
-                          updateStatus.mutate(
-                            { id: enrollmentForActions.id, status: action.status },
-                            {
-                              onSuccess: () => toast.success("مرحله ثبت‌نام به‌روز شد"),
-                              onError: (error) => toast.error(error.message),
-                            },
-                          )
-                        }
-                      >
-                        {action.label}
-                      </Button>
-                    ))}
-                  </div>
+                  <StageActions
+                    enrollmentId={enrollmentForActions.id}
+                    currentStatus={enrollmentForActions.status}
+                    columns={2}
+                  />
                 </>
               )}
             </CardContent>
