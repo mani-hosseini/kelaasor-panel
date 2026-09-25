@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { BootcampForm } from "@/components/bootcamps/BootcampForm";
+import { MediaEditor } from "@/components/bootcamps/MediaEditor";
+import { SyllabusEditor } from "@/components/bootcamps/SyllabusEditor";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,8 +75,10 @@ export default function BootcampDetailPage() {
             <CardContent className="grid gap-4 p-5 sm:grid-cols-2 text-sm">
               <Info label="مدت" value={`${toFa(data.durationInWeeks)} هفته`} />
               <Info label="ظرفیت" value={toFa(data.capacity)} />
-              <Info label="اقساط" value={data.hasBnpl ? "فعال" : "غیرفعال"} />
+              <Info label="اقساط" value={data.hasBnpl ? `${toFa(data.installmentCount)} قسط` : "غیرفعال"} />
               <Info label="اسلاگ" value={data.slug} />
+              <Info label="بنر" value={data.banner ?? "—"} />
+              <Info label="مهلت ثبت‌نام" value={data.currentEvent ? formatJalaliDate(data.currentEvent.registrationDeadline) : "—"} />
               <p className="sm:col-span-2 leading-7 text-muted-foreground">{data.description}</p>
             </CardContent>
           </Card>
@@ -86,21 +89,8 @@ export default function BootcampDetailPage() {
             <CardHeader>
               <CardTitle>فصل‌ها و درس‌ها</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {data.chapters.length === 0 ? (
-                <p className="text-sm text-muted-foreground">سیلابس هنوز وارد نشده.</p>
-              ) : (
-                data.chapters.map((chapter) => (
-                  <div key={chapter.id} className="rounded-2xl border border-border p-4">
-                    <p className="font-semibold">{chapter.title}</p>
-                    <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      {chapter.lessons.map((lesson) => (
-                        <li key={lesson.id}>— {lesson.title}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
-              )}
+            <CardContent>
+              <SyllabusEditor bootcampId={id} initial={data.chapters} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -141,14 +131,11 @@ export default function BootcampDetailPage() {
 
         <TabsContent value="media">
           <Card>
-            <CardContent className="space-y-2 p-5">
-              {data.medias.length === 0 ? <p className="text-sm text-muted-foreground">فایل رسانه‌ای نیست.</p> : null}
-              {data.medias.map((item) => (
-                <div key={item.id} className="flex items-center justify-between rounded-2xl border border-border px-4 py-3">
-                  <p className="text-sm font-medium">{item.title}</p>
-                  <Badge variant="secondary">{item.mediaType}</Badge>
-                </div>
-              ))}
+            <CardHeader>
+              <CardTitle>رسانه و Moments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MediaEditor bootcampId={id} initial={data.medias} />
             </CardContent>
           </Card>
         </TabsContent>
