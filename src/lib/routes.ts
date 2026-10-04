@@ -19,12 +19,12 @@ export const routes = {
   instructor: (id: number | string) => `/instructors/${id}`,
   blog: "/blog",
   blogPost: (id: number | string) => `/blog/${id}`,
-  topics: "/topics",
-  sponsors: "/sponsors",
+  topics: "/bootcamps/topics",
+  sponsors: "/bootcamps/sponsors",
   certificates: "/certificates",
   certificate: (id: number | string) => `/certificates/${id}`,
   settings: "/settings",
-  partners: "/partners",
+  partners: "/bootcamps/partners",
 } as const;
 
 export function isNavActive(pathname: string, href: string) {

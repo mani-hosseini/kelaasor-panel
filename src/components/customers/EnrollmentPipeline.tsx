@@ -1,4 +1,4 @@
-import { enrollmentStatusMeta } from "@/lib/api/mock/seed";
+import { enrollmentStatusMeta } from "@/lib/api/labels";
 import {
   ENROLLMENT_PIPELINE,
   ENROLLMENT_STATUS,

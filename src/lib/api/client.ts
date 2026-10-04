@@ -1,4 +1,5 @@
 import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/auth";
+import { bootcampsApi } from "@/lib/api/bootcamps.api";
 import { mockStore } from "@/lib/api/mock/store";
 import {
   type BlogPostInput,
@@ -75,16 +76,16 @@ export const adminApi = {
       run(() => mockStore.updateSettings(patch)),
   },
   bootcamps: {
-    list: (params?: ListParams) => run(() => mockStore.listBootcamps(params)),
-    get: (id: number) => run(() => mockStore.getBootcamp(id)),
-    create: (input: BootcampInput) => run(() => mockStore.createBootcamp(input)),
+    list: (params?: ListParams) => bootcampsApi.list(params),
+    get: (id: number) => bootcampsApi.get(id),
+    create: (input: BootcampInput) => bootcampsApi.create(input),
     update: (id: number, input: Partial<BootcampInput> & Partial<Bootcamp>) =>
-      run(() => mockStore.updateBootcamp(id, input)),
-    remove: (id: number) => run(() => mockStore.deleteBootcamp(id)),
+      bootcampsApi.update(id, input),
+    remove: (id: number) => bootcampsApi.remove(id),
     setChapters: (id: number, chapters: Bootcamp["chapters"]) =>
-      run(() => mockStore.setBootcampChapters(id, chapters)),
+      bootcampsApi.setChapters(id, chapters),
     setMedias: (id: number, medias: Bootcamp["medias"]) =>
-      run(() => mockStore.setBootcampMedias(id, medias)),
+      bootcampsApi.setMedias(id, medias),
   },
   users: {
     list: (params?: ListParams) => run(() => mockStore.listUsers(params)),
