@@ -12,8 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockStore } from "@/lib/api/mock/store";
-import { useBootcamp, useDeleteBootcamp, useUpdateBootcamp } from "@/lib/api/queries";
+import {
+  useBootcamp,
+  useDeleteBootcamp,
+  useInstructors,
+  useSponsors,
+  useTopics,
+  useUpdateBootcamp,
+} from "@/lib/api/queries";
 import { formatJalaliDate, formatToman, toFa } from "@/lib/format";
 import { routes } from "@/lib/routes";
 
@@ -22,14 +28,19 @@ export default function BootcampDetailPage() {
   const router = useRouter();
   const id = Number(params.id);
   const { data, isLoading } = useBootcamp(id);
+  const { data: topics = [] } = useTopics();
+  const { data: allInstructors = [] } = useInstructors();
+  const { data: allSponsors = [] } = useSponsors();
   const update = useUpdateBootcamp();
   const remove = useDeleteBootcamp();
 
   if (isLoading || !data) return <Skeleton className="h-96" />;
 
-  const topic = mockStore.listTopics().find((item) => item.id === data.topicId);
-  const instructors = mockStore.listInstructors().filter((item) => data.instructorIds.includes(item.id));
-  const sponsors = mockStore.listSponsors().filter((item) => data.sponsorIds.includes(item.id));
+  const topic = topics.find((item) => item.id === data.topicId);
+  const instructors = allInstructors.filter((item) =>
+    data.instructorIds.includes(item.id),
+  );
+  const sponsors = allSponsors.filter((item) => data.sponsorIds.includes(item.id));
 
   return (
     <div className="space-y-6">

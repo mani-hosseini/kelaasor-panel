@@ -32,10 +32,10 @@ const pages = [
   { href: routes.payments, label: "پرداخت‌ها", icon: CreditCard },
   { href: routes.certificates, label: "گواهی‌ها", icon: Award },
   { href: routes.bootcamps, label: "بوت‌کمپ‌ها", icon: BookOpen },
-  { href: routes.instructors, label: "مدرس‌ها", icon: UserRound },
-  { href: routes.topics, label: "موضوع‌ها", icon: Tags },
-  { href: routes.sponsors, label: "حامی‌ها", icon: Handshake },
+  { href: routes.topics, label: "موضوع‌های بوت‌کمپ", icon: Tags },
+  { href: routes.sponsors, label: "حامی‌های بوت‌کمپ", icon: Handshake },
   { href: routes.partners, label: "شرکای صفحه اصلی", icon: Handshake },
+  { href: routes.instructors, label: "مدرس‌ها", icon: UserRound },
   { href: routes.blog, label: "بلاگ", icon: FileText },
   { href: routes.settings, label: "تنظیمات", icon: Settings },
 ];

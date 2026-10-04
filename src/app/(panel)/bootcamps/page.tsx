@@ -10,8 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { mockStore } from "@/lib/api/mock/store";
-import { useBootcamps, useDeleteBootcamp } from "@/lib/api/queries";
+import { useBootcamps, useDeleteBootcamp, useTopics } from "@/lib/api/queries";
 import type { Bootcamp } from "@/lib/api/types";
 import { formatToman, toFa } from "@/lib/format";
 import { routes } from "@/lib/routes";
@@ -19,7 +18,14 @@ import { routes } from "@/lib/routes";
 export default function BootcampsPage() {
   const [search, setSearch] = useState("");
   const { data = [], isLoading } = useBootcamps({ search });
+  const { data: topics = [] } = useTopics();
   const remove = useDeleteBootcamp();
+
+  const topicTitleById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const topic of topics) map.set(topic.id, topic.title);
+    return map;
+  }, [topics]);
 
   const columns = useMemo<ColumnDef<Bootcamp>[]>(
     () => [
@@ -34,7 +40,7 @@ export default function BootcampsPage() {
       },
       {
         header: "موضوع",
-        cell: ({ row }) => mockStore.listTopics().find((t) => t.id === row.original.topicId)?.title,
+        cell: ({ row }) => topicTitleById.get(row.original.topicId) ?? "—",
       },
       {
         header: "وضعیت ثبت‌نام",
@@ -67,7 +73,13 @@ export default function BootcampsPage() {
               variant="ghost"
               className="text-destructive"
               onClick={() =>
-                remove.mutate(row.original.id, { onSuccess: () => toast.success("بوت‌کمپ حذف شد") })
+                remove.mutate(row.original.id, {
+                  onSuccess: () => toast.success("بوت‌کمپ حذف شد"),
+                  onError: (error) =>
+                    toast.error(
+                      error instanceof Error ? error.message : "حذف ممکن نشد",
+                    ),
+                })
               }
             >
               حذف
@@ -76,7 +88,7 @@ export default function BootcampsPage() {
         ),
       },
     ],
-    [remove],
+    [remove, topicTitleById],
   );
 
   return (
@@ -84,7 +96,7 @@ export default function BootcampsPage() {
       <PageHeader
         eyebrow="آموزش"
         title="بوت‌کمپ‌ها"
-        description="وضعیت ثبت‌نام، سیلابس، مدرس و قیمت را از اینجا مدیریت کنید."
+        description="وضعیت ثبت‌نام، سیلابس و قیمت را از اینجا ببینید. موضوع‌ها، حامی‌ها و شرکا از تب‌های بالا مدیریت می‌شوند."
         actions={
           <Button asChild>
             <Link href={routes.bootcampNew}>بوت‌کمپ جدید</Link>

@@ -8,12 +8,10 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
-  Handshake,
   LayoutDashboard,
   LogOut,
   Settings,
   Sparkles,
-  Tags,
   UserRound,
   Users,
 } from "lucide-react";
@@ -40,11 +38,13 @@ const groups = [
   {
     label: "آموزش",
     items: [
-      { href: routes.bootcamps, label: "بوت‌کمپ‌ها", description: "دوره و رویداد", icon: BookOpen },
+      {
+        href: routes.bootcamps,
+        label: "بوت‌کمپ‌ها",
+        description: "دوره، موضوع، حامی و شرکا",
+        icon: BookOpen,
+      },
       { href: routes.instructors, label: "مدرس‌ها", description: "منتور و مربی", icon: UserRound },
-      { href: routes.topics, label: "موضوع‌ها", description: "دسته‌بندی بوت‌کمپ", icon: Tags },
-      { href: routes.sponsors, label: "حامی‌ها", description: "لوگو و لینک دوره", icon: Handshake },
-      { href: routes.partners, label: "شرکای صفحه اصلی", description: "لوگوی پارتنر کمپ", icon: Handshake },
     ],
   },
   {
@@ -74,32 +74,32 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
         className,
       )}
     >
-      <div className="px-4 pt-5 pb-4">
-        <div className="flex items-center gap-3">
-          <BrandLogo size={collapsed ? 36 : 44} className="rounded-2xl ring-1 ring-white/10" />
+      <div className="px-3.5 pt-4 pb-3">
+        <div className="flex items-center gap-2.5">
+          <BrandLogo size={collapsed ? 32 : 38} className="rounded-xl ring-1 ring-white/10" />
           {!collapsed ? (
             <div className="min-w-0 text-right">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold tracking-wide">کلاسور</p>
-                <span className="rounded-md bg-orange/20 px-1.5 py-0.5 text-[10px] font-semibold text-orange">
+                <p className="text-[13px] font-bold tracking-wide">کلاسور</p>
+                <span className="rounded bg-orange/20 px-1 py-px text-[9px] font-semibold text-orange">
                   ADMIN
                 </span>
               </div>
-              <p className="truncate text-xs text-white/55">کنترل‌پنل بوت‌کمپ</p>
+              <p className="truncate text-[11px] text-white/55">کنترل‌پنل بوت‌کمپ</p>
             </div>
           ) : null}
         </div>
       </div>
 
       {!collapsed ? (
-        <div className="px-4 pb-3">
-          <div className="flex items-start gap-2.5 rounded-2xl border border-brand-300/20 bg-brand-400/10 px-3 py-3">
-            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-orange text-white">
-              <Sparkles className="size-3.5" />
+        <div className="px-3.5 pb-2.5">
+          <div className="flex items-start gap-2 rounded-xl border border-brand-300/15 bg-brand-400/10 px-2.5 py-2">
+            <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-orange text-white">
+              <Sparkles className="size-3" />
             </span>
             <div className="min-w-0 text-right">
-              <p className="text-xs font-semibold">صف عملیات امروز</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">
+              <p className="text-[11px] font-semibold">صف عملیات امروز</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-white/55">
                 پیگیری، فیش و گواهی را از پیشخوان ببینید.
               </p>
             </div>
@@ -107,17 +107,17 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
         </div>
       ) : null}
 
-      <Separator className="mx-4 w-auto bg-white/10" />
+      <Separator className="mx-3.5 w-auto bg-white/10" />
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 space-y-4 overflow-y-auto px-2.5 py-3">
         {groups.map((group) => (
           <div key={group.label}>
             {!collapsed ? (
-              <p className="px-3 pb-2 text-right text-[11px] font-semibold tracking-wide text-white/40">
+              <p className="px-2.5 pb-1.5 text-right text-[10px] font-semibold tracking-wide text-white/35">
                 {group.label}
               </p>
             ) : null}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const active = isNavActive(pathname, item.href);
@@ -126,28 +126,35 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
                     key={item.href}
                     href={item.href}
                     onClick={onNavigate}
-                    title={item.label}
+                    title={`${item.label} — ${item.description}`}
                     className={cn(
-                      "group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-right transition-all",
-                      active ? "bg-white text-brand-900 shadow-lg" : "text-white/75 hover:bg-white/8 hover:text-white",
+                      "group relative flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-right transition-all",
+                      active
+                        ? "bg-white text-brand-900 shadow-sm"
+                        : "text-white/75 hover:bg-white/8 hover:text-white",
                       collapsed && "justify-center px-0",
                     )}
                   >
                     {active && !collapsed ? (
-                      <span className="absolute top-1/2 start-0 h-6 w-1 -translate-y-1/2 rounded-e-full bg-orange" />
+                      <span className="absolute top-1/2 start-0 h-4 w-0.5 -translate-y-1/2 rounded-e-full bg-orange" />
                     ) : null}
                     <span
                       className={cn(
-                        "flex size-9 shrink-0 items-center justify-center rounded-xl",
-                        active ? "bg-brand/10 text-brand" : "bg-white/8 text-white/80",
+                        "flex size-7 shrink-0 items-center justify-center rounded-lg",
+                        active ? "bg-brand/10 text-brand" : "bg-white/8 text-white/75",
                       )}
                     >
-                      <Icon className="size-4" />
+                      <Icon className="size-3.5" strokeWidth={1.75} />
                     </span>
                     {!collapsed ? (
                       <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{item.label}</span>
-                        <span className={cn("block truncate text-[11px]", active ? "text-brand/60" : "text-white/40")}>
+                        <span className="block text-[13px] font-semibold leading-5">{item.label}</span>
+                        <span
+                          className={cn(
+                            "block truncate text-[10px] leading-4",
+                            active ? "text-brand/55" : "text-white/35",
+                          )}
+                        >
                           {item.description}
                         </span>
                       </span>
@@ -160,17 +167,17 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-white/10 p-4">
+      <div className="space-y-2 border-t border-white/10 p-3">
         {!collapsed ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-2.5">
-            <Avatar className="size-10 rounded-xl">
-              <AvatarFallback className="rounded-xl bg-brand-300/20 text-brand-100">
+          <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2">
+            <Avatar className="size-8 rounded-lg">
+              <AvatarFallback className="rounded-lg bg-brand-300/20 text-xs text-brand-100">
                 {initials(adminName)}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 text-right">
-              <p className="truncate text-sm font-semibold">{adminName}</p>
-              <p className="text-[11px] text-white/45">مدیر سیستم</p>
+              <p className="truncate text-[13px] font-semibold">{adminName}</p>
+              <p className="text-[10px] text-white/45">مدیر سیستم</p>
             </div>
           </div>
         ) : null}
@@ -181,9 +188,9 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
             clearSessionCookie();
             router.replace(routes.login);
           }}
-          className="h-10 w-full justify-start rounded-xl text-rose-300 hover:bg-rose-500/15 hover:text-rose-200"
+          className="h-8 w-full justify-start rounded-lg text-xs text-rose-300 hover:bg-rose-500/15 hover:text-rose-200"
         >
-          <LogOut className="size-4" />
+          <LogOut className="size-3.5" />
           {!collapsed ? "خروج از حساب" : null}
         </Button>
       </div>
