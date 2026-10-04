@@ -18,6 +18,7 @@ export const routes = {
   instructors: "/instructors",
   instructor: (id: number | string) => `/instructors/${id}`,
   blog: "/blog",
+  blogNew: "/blog/new",
   blogPost: (id: number | string) => `/blog/${id}`,
   topics: "/bootcamps/topics",
   sponsors: "/bootcamps/sponsors",

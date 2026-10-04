@@ -1,4 +1,5 @@
 import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/auth";
+import { blogApi } from "@/lib/api/blog.api";
 import { bootcampsApi } from "@/lib/api/bootcamps.api";
 import { mockStore } from "@/lib/api/mock/store";
 import {
@@ -120,14 +121,14 @@ export const adminApi = {
     remove: (id: number) => run(() => mockStore.deleteInstructor(id)),
   },
   blog: {
-    list: (params?: ListParams) => run(() => mockStore.listBlog(params)),
-    get: (id: number) => run(() => mockStore.getBlog(id)),
-    create: (input: BlogPostInput) => run(() => mockStore.createBlog(input)),
-    update: (id: number, input: Partial<BlogPostInput>) => run(() => mockStore.updateBlog(id, input)),
-    remove: (id: number) => run(() => mockStore.deleteBlog(id)),
+    list: (params?: ListParams) => blogApi.list(params),
+    get: (id: number) => blogApi.get(id),
+    create: (input: BlogPostInput) => blogApi.create(input),
+    update: (id: number, input: Partial<BlogPostInput>) => blogApi.update(id, input),
+    remove: (id: number) => blogApi.remove(id),
+    categories: () => blogApi.categories(),
     moderateComment: (postId: number, commentId: number, approved: boolean) =>
-      run(() => mockStore.moderateComment(postId, commentId, approved)),
-    categories: () => run(() => mockStore.blogCategories()),
+      blogApi.moderateComment(postId, commentId, approved),
   },
   topics: {
     list: () => run(() => mockStore.listTopics()),
