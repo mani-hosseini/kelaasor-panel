@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { enrollmentStatusMeta } from "@/lib/api/mock/seed";
+import { enrollmentStatusMeta } from "@/lib/api/labels";
 import { useCustomers, useToggleCustomerStar } from "@/lib/api/queries";
 import {
   ENROLLMENT_STATUS,

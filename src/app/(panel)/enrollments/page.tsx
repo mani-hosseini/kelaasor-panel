@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { bootcampTitle, userName } from "@/lib/api/client";
-import { enrollmentStatusMeta } from "@/lib/api/mock/seed";
+import { enrollmentStatusMeta } from "@/lib/api/labels";
 import { useBootcamps, useEnrollments } from "@/lib/api/queries";
 import type { Enrollment } from "@/lib/api/types";
 import { formatJalaliDateTime } from "@/lib/format";

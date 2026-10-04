@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { enrollmentStatusMeta } from "@/lib/api/mock/seed";
+import { enrollmentStatusMeta } from "@/lib/api/labels";
 
 export function EnrollmentStatusBadge({ status }: { status: number }) {
   const meta = enrollmentStatusMeta[status] ?? { label: "نامشخص", tone: "neutral" as const };

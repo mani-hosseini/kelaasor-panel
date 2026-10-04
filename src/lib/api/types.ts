@@ -299,17 +299,22 @@ export type BlogPost = {
   id: number;
   title: string;
   slug: string;
-  authorId: number;
+  /** Backend returns author name as string; id may be absent. */
+  authorId: number | null;
   authorName: string;
   categoryId: number;
   categoryTitle: string;
+  categorySlug: string | null;
   excerpt: string;
   content: string;
   banner: string;
   status: number;
+  statusDisplay: string | null;
   publishedAt: string | null;
   viewCount: number;
+  commentsCount: number;
   createdAt: string;
+  updatedAt: string | null;
   comments: BlogComment[];
 };
 
@@ -393,11 +398,12 @@ export type LoginInput = {
   password: string;
 };
 
+/** Admin session shape used by local auth (and later backend auth). */
 export type SessionUser = {
   id: number;
   name: string;
   email: string;
-  role: "staff";
+  role: string;
 };
 
 export type BootcampInput = {
