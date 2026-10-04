@@ -44,7 +44,7 @@ import {
   ENROLLMENT_STATUS,
   type CallOutcome,
 } from "@/lib/api/types";
-import { callOutcomeLabels } from "@/lib/api/mock/seed";
+import { callOutcomeLabels } from "@/lib/api/labels";
 import { formatJalaliDate, formatJalaliDateTime, toFa } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { cn } from "@/lib/utils";

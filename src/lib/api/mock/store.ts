@@ -983,13 +983,18 @@ export const mockStore = {
       authorName: "مدیر کلاسور",
       categoryId: input.categoryId,
       categoryTitle: category?.title ?? "عمومی",
+      categorySlug: category?.slug ?? null,
       excerpt: input.excerpt,
       content: input.content,
       banner: input.banner || "",
       status: input.status,
+      statusDisplay:
+        input.status === BLOG_STATUS.PUBLISHED ? "منتشرشده" : "پیش‌نویس",
       publishedAt: input.status === BLOG_STATUS.PUBLISHED ? new Date().toISOString() : null,
       viewCount: 0,
+      commentsCount: 0,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       comments: [],
     };
     db().blogPosts.unshift(post);

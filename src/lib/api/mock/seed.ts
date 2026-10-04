@@ -19,44 +19,17 @@ import {
   type Sponsor,
   type Topic,
 } from "@/lib/api/types";
+import {
+  callOutcomeLabels,
+  enrollmentStatusMeta,
+} from "@/lib/api/labels";
 
-export const enrollmentStatusMeta: Record<
-  number,
-  { label: string; tone: "neutral" | "info" | "warning" | "success" | "danger" }
-> = {
-  [ENROLLMENT_STATUS.CANCELED]: { label: "لغو شده", tone: "danger" },
-  [ENROLLMENT_STATUS.INITIAL]: { label: "پیش‌ثبت‌نام", tone: "neutral" },
-  [ENROLLMENT_STATUS.THINKING]: { label: "منتظر تماس مشاور", tone: "info" },
-  [ENROLLMENT_STATUS.NO_ANSWER]: { label: "تماس بی‌پاسخ", tone: "warning" },
-  [ENROLLMENT_STATUS.WAITING_FOR_COMPLETE_INFORMATION]: {
-    label: "تکمیل اطلاعات",
-    tone: "warning",
-  },
-  [ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_RECEIPT]: {
-    label: "منتظر فیش",
-    tone: "warning",
-  },
-  [ENROLLMENT_STATUS.WAITING_FOR_PAYMENT_VERIFICATION]: {
-    label: "تأیید پرداخت",
-    tone: "warning",
-  },
-  [ENROLLMENT_STATUS.CONFIRMED]: { label: "تأیید نهایی", tone: "success" },
-};
+export {
+  callOutcomeLabels,
+  educationLevels,
+  enrollmentStatusMeta,
+} from "@/lib/api/labels";
 
-export const callOutcomeLabels: Record<string, string> = {
-  answered: "پاسخ داد",
-  no_answer: "بی‌پاسخ",
-  callback: "درخواست تماس مجدد",
-  busy: "خط مشغول",
-};
-
-export const educationLevels: Record<number, string> = {
-  1: "دیپلم",
-  2: "کاردانی",
-  3: "کارشناسی",
-  4: "کارشناسی ارشد",
-  5: "دکتری",
-};
 
 function daysAgo(days: number, hours = 10) {
   const d = new Date();
@@ -859,13 +832,17 @@ export const blogPosts: BlogPost[] = [
     authorName: "مدیر کلاسور",
     categoryId: 1,
     categoryTitle: "مسیر شغلی",
+    categorySlug: "career",
     excerpt: "قبل از ثبت‌نام، این سه سؤال را از خودت بپرس.",
     content: "انتخاب بوت‌کمپ باید بر اساس خروجی شغلی باشد نه فقط سرفصل.",
     banner: "",
     status: BLOG_STATUS.PUBLISHED,
+    statusDisplay: "منتشرشده",
     publishedAt: daysAgo(10),
     viewCount: 1240,
+    commentsCount: 2,
     createdAt: daysAgo(12),
+    updatedAt: daysAgo(8),
     comments: [
       {
         id: 1,
@@ -895,13 +872,17 @@ export const blogPosts: BlogPost[] = [
     authorName: "مدیر کلاسور",
     categoryId: 3,
     categoryTitle: "اخبار کلاسور",
+    categorySlug: "news",
     excerpt: "علی بعد از پروژه نهایی در یک استارتاپ استخدام شد.",
     content: "خروجی واقعی مهم‌تر از مدرک است.",
     banner: "",
     status: BLOG_STATUS.PUBLISHED,
+    statusDisplay: "منتشرشده",
     publishedAt: daysAgo(20),
     viewCount: 860,
+    commentsCount: 0,
     createdAt: daysAgo(22),
+    updatedAt: daysAgo(20),
     comments: [],
   },
   {
@@ -912,13 +893,17 @@ export const blogPosts: BlogPost[] = [
     authorName: "مدیر کلاسور",
     categoryId: 2,
     categoryTitle: "آموزش",
+    categorySlug: "learn",
     excerpt: "از پیش‌ثبت‌نام تا تأیید نهایی چه اتفاقی می‌افتد.",
     content: "پس از پیش‌ثبت‌نام، مشاور تماس می‌گیرد و مسیر پرداخت مشخص می‌شود.",
     banner: "",
     status: BLOG_STATUS.DRAFT,
+    statusDisplay: "پیش‌نویس",
     publishedAt: null,
     viewCount: 0,
+    commentsCount: 0,
     createdAt: daysAgo(1),
+    updatedAt: daysAgo(1),
     comments: [],
   },
 ];
