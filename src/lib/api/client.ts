@@ -1,6 +1,13 @@
-import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/auth";
 import { blogApi } from "@/lib/api/blog.api";
 import { bootcampsApi } from "@/lib/api/bootcamps.api";
+import { certificatesApi } from "@/lib/api/certificates.api";
+import { customersApi } from "@/lib/api/customers.api";
+import { dashboardApi } from "@/lib/api/dashboard.api";
+import { instructorsApi } from "@/lib/api/instructors.api";
+import { partnersApi } from "@/lib/api/partners.api";
+import { paymentsApi } from "@/lib/api/payments.api";
+import { sponsorsApi } from "@/lib/api/sponsors.api";
+import { topicsApi } from "@/lib/api/topics.api";
 import { mockStore } from "@/lib/api/mock/store";
 import {
   type BlogPostInput,
@@ -18,64 +25,80 @@ import {
 } from "@/lib/api/types";
 import { delay } from "@/lib/utils";
 
+/**
+ * Hybrid facade:
+ * - Live modules call real `*.api.ts` clients (cookie auth via `apiRequest`)
+ * - Remaining modules stay on `mockStore` until wired one-by-one
+ * - UI / React Query should only talk to `adminApi`, never `mockStore`
+ *
+ * Panel docs: https://api.kelaasor.com/swagger/docs/#/panel
+ * Same `NEXT_PUBLIC_API_BASE_URL` as kelaasor-camp.
+ *
+ * Auth is local-only for now (no /panel/admin/auth/* calls) until backend login is ready.
+ */
+
 async function run<T>(fn: () => T): Promise<T> {
   await delay(160);
   return fn();
 }
 
+function localSession(input?: LoginInput): SessionUser {
+  const email = input?.email.trim() || "staff@local";
+  return {
+    id: 1,
+    email,
+    name: email.split("@")[0] || "مدیر",
+    role: "staff",
+  };
+}
+
 export const adminApi = {
+  /** LOCAL — no backend auth calls */
   auth: {
-    async login(input: LoginInput): Promise<SessionUser> {
-      await delay(220);
-      if (input.email.trim().toLowerCase() !== DEMO_EMAIL || input.password !== DEMO_PASSWORD) {
-        throw new Error("ایمیل یا رمز عبور نادرست است.");
-      }
-      return {
-        id: 99,
-        name: "مدیر کلاسور",
-        email: DEMO_EMAIL,
-        role: "staff",
-      };
+    login: async (input: LoginInput): Promise<SessionUser> => {
+      await delay(120);
+      return localSession(input);
     },
-    async me(): Promise<SessionUser> {
+    me: async (): Promise<SessionUser> => {
       await delay(80);
-      return {
-        id: 99,
-        name: "مدیر کلاسور",
-        email: DEMO_EMAIL,
-        role: "staff",
-      };
+      return localSession();
     },
   },
+  /** LIVE — /panel/admin/dashboard/ */
   dashboard: {
-    stats: () => run(() => mockStore.dashboard()),
+    stats: () => dashboardApi.stats(),
   },
+  /** MOCK — wire next */
   enrollments: {
     list: (params?: ListParams) => run(() => mockStore.listEnrollments(params)),
     get: (id: number) => run(() => mockStore.getEnrollment(id)),
     updateStatus: (id: number, status: EnrollmentStatus, notes?: string) =>
       run(() => mockStore.updateEnrollmentStatus(id, status, notes)),
   },
+  /** LIVE — /panel/admin/payments/... */
   payments: {
-    list: (params?: ListParams) => run(() => mockStore.listPayments(params)),
-    get: (id: number) => run(() => mockStore.getPayment(id)),
-    verify: (id: number, approved: boolean) => run(() => mockStore.verifyPayment(id, approved)),
+    list: (params?: ListParams) => paymentsApi.list(params),
+    get: (id: number) => paymentsApi.get(id),
+    verify: (id: number, approved: boolean) => paymentsApi.verify(id, approved),
     markInstallmentPaid: (paymentId: number, installmentId: number) =>
-      run(() => mockStore.markInstallmentPaid(paymentId, installmentId)),
+      paymentsApi.markInstallmentPaid(paymentId, installmentId),
     rejectInstallment: (paymentId: number, installmentId: number) =>
-      run(() => mockStore.rejectInstallmentReceipt(paymentId, installmentId)),
+      paymentsApi.rejectInstallment(paymentId, installmentId),
   },
+  /** LIVE — /panel/admin/certificates/... (revoke not in API yet) */
   certificates: {
-    list: (params?: ListParams) => run(() => mockStore.listCertificates(params)),
-    get: (id: number) => run(() => mockStore.getCertificate(id)),
-    issue: (enrollmentId: number) => run(() => mockStore.issueCertificate(enrollmentId)),
-    revoke: (id: number) => run(() => mockStore.revokeCertificate(id)),
+    list: (params?: ListParams) => certificatesApi.list(params),
+    get: (id: number) => certificatesApi.get(id),
+    issue: (enrollmentId: number) => certificatesApi.issue(enrollmentId),
+    revoke: (id: number) => certificatesApi.revoke(id),
   },
+  /** MOCK — wire next */
   settings: {
     get: () => run(() => mockStore.getSettings()),
     update: (patch: Partial<import("@/lib/api/types").AppSettings>) =>
       run(() => mockStore.updateSettings(patch)),
   },
+  /** LIVE — /panel/admin/bootcamps/... */
   bootcamps: {
     list: (params?: ListParams) => bootcampsApi.list(params),
     get: (id: number) => bootcampsApi.get(id),
@@ -88,17 +111,19 @@ export const adminApi = {
     setMedias: (id: number, medias: Bootcamp["medias"]) =>
       bootcampsApi.setMedias(id, medias),
   },
+  /** MOCK list/get — update goes through live customers PATCH */
   users: {
     list: (params?: ListParams) => run(() => mockStore.listUsers(params)),
     get: (id: number) => run(() => mockStore.getUser(id)),
-    update: (id: number, patch: UserUpdateInput) =>
-      run(() => mockStore.updateUser(id, patch)),
+    update: (id: number, patch: UserUpdateInput) => customersApi.update(id, patch),
   },
+  /** LIVE — /panel/admin/customers/... (follow-up/tags not in API yet) */
   customers: {
-    list: (params?: ListParams) => run(() => mockStore.listCustomers(params)),
-    get: (id: number) => run(() => mockStore.getCustomerDetail(id)),
-    addNote: (userId: number, body: string) => run(() => mockStore.addCustomerNote(userId, body)),
-    deleteNote: (noteId: number) => run(() => mockStore.deleteCustomerNote(noteId)),
+    list: (params?: ListParams) => customersApi.list(params),
+    get: (id: number) => customersApi.get(id),
+    addNote: (userId: number, body: string) => customersApi.addNote(userId, body),
+    deleteNote: (userId: number, noteId: number) =>
+      customersApi.deleteNote(userId, noteId),
     addCall: (input: {
       userId: number;
       enrollmentId?: number | null;
@@ -106,20 +131,23 @@ export const adminApi = {
       durationMinutes?: number | null;
       outcome: CallOutcome;
       summary: string;
-    }) => run(() => mockStore.addCustomerCall(input)),
-    toggleStar: (userId: number) => run(() => mockStore.toggleCustomerStar(userId)),
+    }) => customersApi.addCall(input),
+    toggleStar: (userId: number) => customersApi.toggleStar(userId),
     setFollowUp: (userId: number, followUpAt: string | null) =>
-      run(() => mockStore.setCustomerFollowUp(userId, followUpAt)),
+      customersApi.setFollowUp(userId, followUpAt),
     setTags: (userId: number, crmTags: string[]) =>
-      run(() => mockStore.setCustomerTags(userId, crmTags)),
+      customersApi.setTags(userId, crmTags),
   },
+  /** LIVE — /panel/admin/instructors/... */
   instructors: {
-    list: (params?: ListParams) => run(() => mockStore.listInstructors(params)),
-    get: (id: number) => run(() => mockStore.getInstructor(id)),
-    create: (input: InstructorInput) => run(() => mockStore.createInstructor(input)),
-    update: (id: number, input: InstructorInput) => run(() => mockStore.updateInstructor(id, input)),
-    remove: (id: number) => run(() => mockStore.deleteInstructor(id)),
+    list: (params?: ListParams) => instructorsApi.list(params),
+    get: (id: number) => instructorsApi.get(id),
+    create: (input: InstructorInput) => instructorsApi.create(input),
+    update: (id: number, input: InstructorInput) =>
+      instructorsApi.update(id, input),
+    remove: (id: number) => instructorsApi.remove(id),
   },
+  /** LIVE — /panel/admin/blog/... */
   blog: {
     list: (params?: ListParams) => blogApi.list(params),
     get: (id: number) => blogApi.get(id),
@@ -130,33 +158,38 @@ export const adminApi = {
     moderateComment: (postId: number, commentId: number, approved: boolean) =>
       blogApi.moderateComment(postId, commentId, approved),
   },
+  /** LIVE — /panel/admin/topics/... */
   topics: {
-    list: () => run(() => mockStore.listTopics()),
-    create: (input: TopicInput) => run(() => mockStore.createTopic(input)),
-    update: (id: number, input: TopicInput) => run(() => mockStore.updateTopic(id, input)),
-    remove: (id: number) => run(() => mockStore.deleteTopic(id)),
+    list: () => topicsApi.list(),
+    create: (input: TopicInput) => topicsApi.create(input),
+    update: (id: number, input: TopicInput) => topicsApi.update(id, input),
+    remove: (id: number) => topicsApi.remove(id),
   },
+  /** LIVE — /panel/admin/sponsors/... */
   sponsors: {
-    list: () => run(() => mockStore.listSponsors()),
-    create: (input: SponsorInput) => run(() => mockStore.createSponsor(input)),
-    update: (id: number, input: SponsorInput) => run(() => mockStore.updateSponsor(id, input)),
-    remove: (id: number) => run(() => mockStore.deleteSponsor(id)),
+    list: () => sponsorsApi.list(),
+    create: (input: SponsorInput) => sponsorsApi.create(input),
+    update: (id: number, input: SponsorInput) => sponsorsApi.update(id, input),
+    remove: (id: number) => sponsorsApi.remove(id),
   },
+  /** LIVE — /panel/admin/partners/... */
   partners: {
-    list: () => run(() => mockStore.listPartners()),
+    list: () => partnersApi.list(),
     create: (input: import("@/lib/api/types").PartnerCompanyInput) =>
-      run(() => mockStore.createPartner(input)),
+      partnersApi.create(input),
     update: (id: number, input: import("@/lib/api/types").PartnerCompanyInput) =>
-      run(() => mockStore.updatePartner(id, input)),
-    remove: (id: number) => run(() => mockStore.deletePartner(id)),
+      partnersApi.update(id, input),
+    remove: (id: number) => partnersApi.remove(id),
   },
 };
 
+/** @deprecated Prefer values from query/API payloads once modules are live. */
 export function userName(userId: number) {
   const user = mockStore.getUser(userId);
   return user ? `${user.firstName} ${user.lastName}` : "کاربر";
 }
 
+/** @deprecated Prefer values from query/API payloads once modules are live. */
 export function bootcampTitle(bootcampId: number) {
   return mockStore.getBootcamp(bootcampId)?.title ?? "بوت‌کمپ";
 }

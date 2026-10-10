@@ -13,12 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminApi } from "@/lib/api/client";
-import { DEMO_EMAIL, DEMO_PASSWORD, setSessionCookie } from "@/lib/auth";
+import { setSessionCookie } from "@/lib/auth";
 import { routes } from "@/lib/routes";
 
 const schema = z.object({
   email: z.string().trim().email("ایمیل معتبر وارد کنید."),
-  password: z.string().min(8, "رمز عبور حداقل ۸ کاراکتر باشد."),
+  password: z.string().min(1, "رمز عبور را وارد کنید."),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -31,13 +31,14 @@ export function LoginForm() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: DEMO_EMAIL, password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
     try {
       await adminApi.auth.login(values);
+      // Local UI gate for Next middleware (backend auth temporarily disabled).
       setSessionCookie();
       toast.success("خوش آمدید");
       router.replace(search.get("next") || routes.root);
@@ -113,9 +114,6 @@ export function LoginForm() {
               )}
             </Button>
           </form>
-          <p className="rounded-xl bg-muted px-3 py-2 text-center text-[11px] text-muted-foreground" dir="ltr">
-            {DEMO_EMAIL} / {DEMO_PASSWORD}
-          </p>
         </div>
       </div>
     </div>

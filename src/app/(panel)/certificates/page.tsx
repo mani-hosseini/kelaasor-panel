@@ -80,6 +80,7 @@ export default function CertificatesPage() {
                 onClick={() =>
                   revoke.mutate(row.original.id, {
                     onSuccess: () => toast.success("گواهی باطل شد"),
+                    onError: (error) => toast.error(error.message),
                   })
                 }
               >

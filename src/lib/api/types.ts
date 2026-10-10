@@ -431,6 +431,8 @@ export type BootcampInput = {
 
 export type InstructorInput = {
   fullName: string;
+  /** Optional — backend create/update accepts phone_number. */
+  phoneNumber?: string;
   jobTitle: string;
   linkedinUrl: string;
   company: string;
@@ -458,6 +460,7 @@ export type PartnerCompany = {
   name: string;
   logo: string;
   website: string;
+  ordering?: number;
 };
 
 export type PartnerCompanyInput = {

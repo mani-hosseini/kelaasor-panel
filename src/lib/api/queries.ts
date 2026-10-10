@@ -305,7 +305,7 @@ export function useDeleteCustomerNote() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (input: { noteId: number; userId: number }) =>
-      adminApi.customers.deleteNote(input.noteId),
+      adminApi.customers.deleteNote(input.userId, input.noteId),
     onSuccess: async (_data, variables) => {
       await client.invalidateQueries({ queryKey: queryKeys.customer(variables.userId) });
       await client.invalidateQueries({ queryKey: ["customers"] });

@@ -6,22 +6,37 @@
 
 ```bash
 cd kelaasor-panel
+cp .env.example .env.local   # در صورت نیاز
 npm install
 npm run dev
 ```
 
-ورود دمو:
+`NEXT_PUBLIC_API_BASE_URL` باید **همان مقدار camp** باشد (مثلاً `https://api.kelaasor.com`).
 
-- ایمیل: `staff@kelaasor.com`
-- رمز: `KelaasorAdmin!2026`
+ورود فعلاً **محلی** است (بدون فراخوانی `/panel/admin/auth/*`) تا بک‌اند لاگین آماده شود. هر ایمیل/رمز معتبر فرمی کافی است.
 
-## معماری
+مستندات panel: [Swagger panel](https://api.kelaasor.com/swagger/docs/#/panel)
 
-فرانت Next.js 16 + TypeScript. داده فعلاً mock است (`NEXT_PUBLIC_API_MODE=mock`) و لایه `adminApi` برای اتصال بعدی به Django آماده است.
+## معماری API (hybrid)
+
+| لایه | نقش |
+|------|-----|
+| `adminApi` (`src/lib/api/client.ts`) | تنها ورودی UI / React Query |
+| `*.api.ts` + `apiRequest` | ماژول‌های live با cookie auth |
+| `normalize.ts` / `mediaUrl.ts` / `labels.ts` | نرمال‌سازی داینامیک پاسخ بک‌اند و fallback لیبل |
+| `mock/store` | فقط ماژول‌هایی که هنوز وصل نشده‌اند |
+
+الان live: **dashboard, customers, payments, certificates, bootcamps, blog, instructors, topics, sponsors, partners**.
+Auth محلی است؛ **enrollments** و **settings** هنوز mock. برای هر ماژول جدید:
+
+1. فایل `src/lib/api/<module>.api.ts` با `apiRequest` + نرمالایزر
+2. جایگزینی همان متدها داخل `adminApi` (بدون دست زدن به hooks/UI مگر لازم شود)
+3. ترجیح فیلدهای `*_display` و لیست‌های بک‌اند نسبت به لیبل هاردکد
 
 ## ماژول‌ها
 
 - پیشخوان و مراحل ثبت‌نام
 - صف ثبت‌نام و تأیید پرداخت
-- بوت‌کمپ، مدرس، کاربر
+- بوت‌کمپ، مدرس، کاربر / مشتری (CRM)
+- گواهی، تنظیمات، پارتنر
 - بلاگ، موضوع، حامی
