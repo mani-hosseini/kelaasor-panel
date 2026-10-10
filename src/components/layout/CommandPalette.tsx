@@ -7,6 +7,7 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  Globe2,
   Handshake,
   LayoutDashboard,
   Settings,
@@ -37,6 +38,8 @@ const pages = [
   { href: routes.partners, label: "شرکای صفحه اصلی", icon: Handshake },
   { href: routes.instructors, label: "مدرس‌ها", icon: UserRound },
   { href: routes.blog, label: "بلاگ", icon: FileText },
+  { href: routes.siteAbout, label: "درباره ما", icon: Globe2 },
+  { href: routes.siteContact, label: "تماس با ما", icon: Globe2 },
   { href: routes.settings, label: "تنظیمات", icon: Settings },
 ];
 

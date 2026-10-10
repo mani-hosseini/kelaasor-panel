@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,8 +94,16 @@ function InstructorEditForm({
       <div className="space-y-1.5"><Label>نام</Label><Input {...form.register("fullName")} /></div>
       <div className="space-y-1.5"><Label>عنوان شغلی</Label><Input {...form.register("jobTitle")} /></div>
       <div className="space-y-1.5"><Label>شرکت</Label><Input {...form.register("company")} /></div>
-      <div className="space-y-1.5"><Label>آواتار (URL)</Label><Input dir="ltr" {...form.register("avatar")} /></div>
-      <div className="space-y-1.5"><Label>لوگوی شرکت (URL)</Label><Input dir="ltr" {...form.register("companyLogo")} /></div>
+      <ImageDropField
+        label="آواتار"
+        value={form.watch("avatar")}
+        onChange={(next) => form.setValue("avatar", next, { shouldDirty: true })}
+      />
+      <ImageDropField
+        label="لوگوی شرکت"
+        value={form.watch("companyLogo")}
+        onChange={(next) => form.setValue("companyLogo", next, { shouldDirty: true })}
+      />
       <div className="space-y-1.5"><Label>لینکدین</Label><Input dir="ltr" {...form.register("linkedinUrl")} /></div>
       <div className="space-y-1.5"><Label>بیو</Label><Textarea {...form.register("bio")} /></div>
       <Button type="submit" disabled={submitting}>ذخیره</Button>

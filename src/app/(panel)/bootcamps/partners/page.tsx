@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,7 +18,7 @@ import type { PartnerCompanyInput } from "@/lib/api/types";
 const schema = z.object({
   name: z.string().min(2),
   website: z.string().url(),
-  logo: z.string().min(1),
+  logo: z.string().min(1, "لوگو را انتخاب کنید"),
 });
 
 export default function PartnersPage() {
@@ -27,7 +28,7 @@ export default function PartnersPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const form = useForm<PartnerCompanyInput>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", website: "https://", logo: "/partners/logo.svg" },
+    defaultValues: { name: "", website: "https://", logo: "" },
   });
 
   return (
@@ -46,7 +47,7 @@ export default function PartnersPage() {
               onSuccess: () => {
                 toast.success(editingId ? "به‌روز شد" : "اضافه شد");
                 setEditingId(null);
-                form.reset({ name: "", website: "https://", logo: "/partners/logo.svg" });
+                form.reset({ name: "", website: "https://", logo: "" });
               },
             },
           ),
@@ -58,9 +59,13 @@ export default function PartnersPage() {
         <Field label="وب‌سایت">
           <Input dir="ltr" {...form.register("website")} />
         </Field>
-        <Field label="مسیر لوگو">
-          <Input dir="ltr" {...form.register("logo")} />
-        </Field>
+        <div className="sm:col-span-3">
+          <ImageDropField
+            label="لوگو"
+            value={form.watch("logo") || null}
+            onChange={(next) => form.setValue("logo", next ?? "", { shouldDirty: true, shouldValidate: true })}
+          />
+        </div>
         <div className="flex gap-2 sm:col-span-3">
           <Button type="submit" disabled={save.isPending}>
             {editingId ? "ذخیره ویرایش" : "افزودن شریک"}
@@ -71,7 +76,7 @@ export default function PartnersPage() {
               variant="ghost"
               onClick={() => {
                 setEditingId(null);
-                form.reset({ name: "", website: "https://", logo: "/partners/logo.svg" });
+                form.reset({ name: "", website: "https://", logo: "" });
               }}
             >
               انصراف

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -112,9 +113,11 @@ export function BlogPostForm({
         </Field>
       </div>
 
-      <Field label="بنر (URL)">
-        <Input dir="ltr" className="text-left" {...form.register("banner")} />
-      </Field>
+      <ImageDropField
+        label="بنر"
+        value={form.watch("banner")}
+        onChange={(next) => form.setValue("banner", next ?? "", { shouldDirty: true })}
+      />
 
       <Field label="خلاصه" error={form.formState.errors.excerpt?.message}>
         <Textarea rows={3} {...form.register("excerpt")} />

@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "lucide-react";
 import { z } from "zod";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +20,13 @@ import {
   type Bootcamp,
   type BootcampInput,
 } from "@/lib/api/types";
-import { useInstructors, useSponsors, useTopics } from "@/lib/api/queries";
+import {
+  useInstructors,
+  useSaveSponsor,
+  useSaveTopic,
+  useSponsors,
+  useTopics,
+} from "@/lib/api/queries";
 
 const schema = z.object({
   title: z.string().min(3, "عنوان را وارد کنید."),
@@ -55,6 +65,18 @@ export function BootcampForm({
   const topics = useTopics();
   const instructors = useInstructors();
   const sponsors = useSponsors();
+  const saveTopic = useSaveTopic();
+  const saveSponsor = useSaveSponsor();
+
+  const [topicDraft, setTopicDraft] = useState("");
+  const [showTopicAdd, setShowTopicAdd] = useState(false);
+  const [showSponsorAdd, setShowSponsorAdd] = useState(false);
+  const [sponsorDraft, setSponsorDraft] = useState({
+    name: "",
+    website: "https://",
+    logo: "",
+  });
+
   const form = useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -85,6 +107,7 @@ export function BootcampForm({
   const selectedInstructors = form.watch("instructorIds") ?? [];
   const selectedSponsors = form.watch("sponsorIds") ?? [];
   const hasBnpl = form.watch("hasBnpl");
+  const topicId = form.watch("topicId");
 
   function toggleId(field: "instructorIds" | "sponsorIds", id: number, checked: boolean) {
     const current = form.getValues(field) ?? [];
@@ -94,6 +117,14 @@ export function BootcampForm({
       { shouldDirty: true },
     );
   }
+
+  const selectedTopic = (topics.data ?? []).find((item) => item.id === Number(topicId));
+  const selectedSponsorItems = (sponsors.data ?? []).filter((item) =>
+    selectedSponsors.includes(item.id),
+  );
+  const selectedInstructorItems = (instructors.data ?? []).filter((item) =>
+    selectedInstructors.includes(item.id),
+  );
 
   return (
     <form
@@ -115,9 +146,13 @@ export function BootcampForm({
         <Field label="خلاصه" className="sm:col-span-2" error={form.formState.errors.brief?.message}>
           <Input {...form.register("brief")} />
         </Field>
-        <Field label="بنر (URL تصویر)" className="sm:col-span-2">
-          <Input dir="ltr" className="text-left" placeholder="/banners/..." {...form.register("banner")} />
-        </Field>
+        <div className="sm:col-span-2">
+          <ImageDropField
+            label="بنر"
+            value={form.watch("banner")}
+            onChange={(next) => form.setValue("banner", next, { shouldDirty: true })}
+          />
+        </div>
         <Field
           label="توضیحات"
           className="sm:col-span-2"
@@ -125,13 +160,26 @@ export function BootcampForm({
         >
           <Textarea rows={5} {...form.register("description")} />
         </Field>
-        <Field label="موضوع">
+
+        <div className="space-y-2 sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label>موضوع</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowTopicAdd((value) => !value)}
+            >
+              <Plus className="size-3.5" />
+              موضوع جدید
+            </Button>
+          </div>
           <Select
-            value={String(form.watch("topicId"))}
-            onValueChange={(value) => form.setValue("topicId", Number(value))}
+            value={String(form.watch("topicId") || "")}
+            onValueChange={(value) => form.setValue("topicId", Number(value), { shouldDirty: true })}
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="انتخاب موضوع" />
             </SelectTrigger>
             <SelectContent>
               {(topics.data ?? []).map((topic) => (
@@ -141,7 +189,42 @@ export function BootcampForm({
               ))}
             </SelectContent>
           </Select>
-        </Field>
+          {selectedTopic ? (
+            <p className="text-xs text-muted-foreground">
+              انتخاب‌شده: <span className="font-semibold text-foreground">{selectedTopic.title}</span>
+            </p>
+          ) : null}
+          {showTopicAdd ? (
+            <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3 sm:flex-row">
+              <Input
+                placeholder="عنوان موضوع جدید"
+                value={topicDraft}
+                onChange={(event) => setTopicDraft(event.target.value)}
+              />
+              <Button
+                type="button"
+                disabled={saveTopic.isPending || topicDraft.trim().length < 2}
+                onClick={() =>
+                  saveTopic.mutate(
+                    { data: { title: topicDraft.trim() } },
+                    {
+                      onSuccess: (created) => {
+                        form.setValue("topicId", created.id, { shouldDirty: true });
+                        setTopicDraft("");
+                        setShowTopicAdd(false);
+                        toast.success("موضوع اضافه و انتخاب شد");
+                      },
+                      onError: (error) => toast.error(error.message),
+                    },
+                  )
+                }
+              >
+                ذخیره موضوع
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
         <Field label="وضعیت رویداد (سایت)">
           <Select
             value={String(form.watch("eventStatus"))}
@@ -201,6 +284,18 @@ export function BootcampForm({
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-border p-4">
           <Label className="mb-3 block">مدرس‌ها / منتورها</Label>
+          {selectedInstructorItems.length > 0 ? (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {selectedInstructorItems.map((item) => (
+                <span
+                  key={item.id}
+                  className="rounded-lg bg-brand/10 px-2 py-1 text-[11px] font-semibold text-brand"
+                >
+                  {item.fullName}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <div className="max-h-48 space-y-2 overflow-y-auto">
             {(instructors.data ?? []).map((item) => {
               const checked = selectedInstructors.includes(item.id);
@@ -224,8 +319,93 @@ export function BootcampForm({
             ) : null}
           </div>
         </div>
+
         <div className="rounded-2xl border border-border p-4">
-          <Label className="mb-3 block">اسپانسرها</Label>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <Label>اسپانسرها / حامی‌ها</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowSponsorAdd((value) => !value)}
+            >
+              <Plus className="size-3.5" />
+              حامی جدید
+            </Button>
+          </div>
+          {selectedSponsorItems.length > 0 ? (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {selectedSponsorItems.map((item) => (
+                <span
+                  key={item.id}
+                  className="rounded-lg bg-orange/10 px-2 py-1 text-[11px] font-semibold text-orange"
+                >
+                  {item.name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mb-3 text-xs text-muted-foreground">هنوز حامیی برای این بوت‌کمپ انتخاب نشده.</p>
+          )}
+          {showSponsorAdd ? (
+            <div className="mb-3 space-y-2 rounded-xl border border-dashed border-border p-3">
+              <Input
+                placeholder="نام حامی"
+                value={sponsorDraft.name}
+                onChange={(event) =>
+                  setSponsorDraft((prev) => ({ ...prev, name: event.target.value }))
+                }
+              />
+              <Input
+                dir="ltr"
+                placeholder="https://"
+                value={sponsorDraft.website}
+                onChange={(event) =>
+                  setSponsorDraft((prev) => ({ ...prev, website: event.target.value }))
+                }
+              />
+              <ImageDropField
+                label="لوگو"
+                value={sponsorDraft.logo || null}
+                onChange={(next) =>
+                  setSponsorDraft((prev) => ({ ...prev, logo: next ?? "" }))
+                }
+              />
+              <Button
+                type="button"
+                disabled={
+                  saveSponsor.isPending ||
+                  sponsorDraft.name.trim().length < 2 ||
+                  !sponsorDraft.logo
+                }
+                onClick={() =>
+                  saveSponsor.mutate(
+                    {
+                      data: {
+                        name: sponsorDraft.name.trim(),
+                        website: sponsorDraft.website.trim(),
+                        logo: sponsorDraft.logo,
+                      },
+                    },
+                    {
+                      onSuccess: (created) => {
+                        const current = form.getValues("sponsorIds") ?? [];
+                        form.setValue("sponsorIds", [...current, created.id], {
+                          shouldDirty: true,
+                        });
+                        setSponsorDraft({ name: "", website: "https://", logo: "" });
+                        setShowSponsorAdd(false);
+                        toast.success("حامی اضافه و انتخاب شد");
+                      },
+                      onError: (error) => toast.error(error.message),
+                    },
+                  )
+                }
+              >
+                ذخیره حامی
+              </Button>
+            </div>
+          ) : null}
           <div className="max-h-48 space-y-2 overflow-y-auto">
             {(sponsors.data ?? []).map((item) => {
               const checked = selectedSponsors.includes(item.id);

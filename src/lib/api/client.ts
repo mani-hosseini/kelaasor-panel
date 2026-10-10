@@ -34,7 +34,7 @@ import { delay } from "@/lib/utils";
  * Panel docs: https://api.kelaasor.com/swagger/docs/#/panel
  * Same `NEXT_PUBLIC_API_BASE_URL` as kelaasor-camp.
  *
- * Auth is local-only for now (no /panel/admin/auth/* calls) until backend login is ready.
+ * Auth is local-only until POST /panel/admin/auth/login/ is fixed on backend.
  */
 
 async function run<T>(fn: () => T): Promise<T> {
@@ -53,7 +53,7 @@ function localSession(input?: LoginInput): SessionUser {
 }
 
 export const adminApi = {
-  /** LOCAL — no backend auth calls */
+  /** LOCAL — backend login endpoint currently hangs / unusable */
   auth: {
     login: async (input: LoginInput): Promise<SessionUser> => {
       await delay(120);

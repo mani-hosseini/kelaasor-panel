@@ -12,6 +12,7 @@ import { DataTable } from "@/components/data-table/DataTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -122,6 +123,16 @@ export default function InstructorsPage() {
             <Field label="عنوان شغلی"><Input {...form.register("jobTitle")} /></Field>
             <Field label="شرکت"><Input {...form.register("company")} /></Field>
             <Field label="لینکدین"><Input dir="ltr" {...form.register("linkedinUrl")} /></Field>
+            <ImageDropField
+              label="آواتار"
+              value={form.watch("avatar")}
+              onChange={(next) => form.setValue("avatar", next, { shouldDirty: true })}
+            />
+            <ImageDropField
+              label="لوگوی شرکت"
+              value={form.watch("companyLogo")}
+              onChange={(next) => form.setValue("companyLogo", next, { shouldDirty: true })}
+            />
             <Field label="بیو"><Textarea {...form.register("bio")} /></Field>
             <Button type="submit" disabled={save.isPending}>ذخیره</Button>
           </form>

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 
+import { BootcampCatalogManager } from "@/components/bootcamps/BootcampCatalogManager";
 import { DataTable } from "@/components/data-table/DataTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -96,7 +97,7 @@ export default function BootcampsPage() {
       <PageHeader
         eyebrow="آموزش"
         title="بوت‌کمپ‌ها"
-        description="وضعیت ثبت‌نام، سیلابس و قیمت را از اینجا ببینید. موضوع‌ها، حامی‌ها و شرکا از تب‌های بالا مدیریت می‌شوند."
+        description="لیست بوت‌کمپ‌ها را ببینید و از بخش پایین همین صفحه موضوع، حامی و شریک اضافه کنید."
         actions={
           <Button asChild>
             <Link href={routes.bootcampNew}>بوت‌کمپ جدید</Link>
@@ -116,6 +117,8 @@ export default function BootcampsPage() {
           />
         )}
       </div>
+
+      <BootcampCatalogManager />
     </div>
   );
 }

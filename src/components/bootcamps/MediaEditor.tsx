@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FileDropField } from "@/components/ui/FileDropField";
+import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -37,32 +39,47 @@ export function MediaEditor({
       <p className="text-sm text-muted-foreground">
         تصویر معرفی، ویدیو و فایل‌های دوره در بخش Moments صفحه بوت‌کمپ استفاده می‌شوند.
       </p>
-      <div className="grid gap-3 rounded-2xl border border-dashed border-border p-4 sm:grid-cols-4">
-        <Input placeholder="عنوان" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <Input
-          dir="ltr"
-          placeholder="/media/..."
-          value={file}
-          onChange={(e) => setFile(e.target.value)}
-        />
-        <Select
-          value={mediaType}
-          onValueChange={(value) => setMediaType(value as BootcampMedia["mediaType"])}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="image">تصویر</SelectItem>
-            <SelectItem value="video">ویدیو</SelectItem>
-            <SelectItem value="file">فایل</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="space-y-3 rounded-2xl border border-dashed border-border p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input placeholder="عنوان" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Select
+            value={mediaType}
+            onValueChange={(value) => {
+              setMediaType(value as BootcampMedia["mediaType"]);
+              setFile("");
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="image">تصویر</SelectItem>
+              <SelectItem value="video">ویدیو</SelectItem>
+              <SelectItem value="file">فایل</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {mediaType === "image" ? (
+          <ImageDropField
+            label="فایل تصویر"
+            value={file || null}
+            onChange={(next) => setFile(next ?? "")}
+          />
+        ) : (
+          <FileDropField
+            label={mediaType === "video" ? "فایل ویدیو" : "فایل ضمیمه"}
+            value={file || null}
+            onChange={(next) => setFile(next ?? "")}
+            accept={mediaType === "video" ? "video/*" : "*/*"}
+            maxMb={mediaType === "video" ? 50 : 20}
+            hint={mediaType === "video" ? "حداکثر ۵۰MB" : "حداکثر ۲۰MB"}
+          />
+        )}
         <Button
           type="button"
           onClick={() => {
             if (!title.trim() || !file.trim()) {
-              toast.error("عنوان و مسیر فایل لازم است");
+              toast.error("عنوان و فایل لازم است");
               return;
             }
             localId -= 1;

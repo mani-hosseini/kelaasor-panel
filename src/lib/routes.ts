@@ -26,6 +26,9 @@ export const routes = {
   certificate: (id: number | string) => `/certificates/${id}`,
   settings: "/settings",
   partners: "/bootcamps/partners",
+  site: "/site",
+  siteAbout: "/site/about",
+  siteContact: "/site/contact",
 } as const;
 
 export function isNavActive(pathname: string, href: string) {

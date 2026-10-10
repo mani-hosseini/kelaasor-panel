@@ -8,6 +8,7 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  Globe2,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -51,6 +52,12 @@ const groups = [
     label: "محتوا و تنظیمات",
     items: [
       { href: routes.blog, label: "بلاگ", description: "پست و کامنت", icon: FileText },
+      {
+        href: routes.site,
+        label: "صفحات سایت",
+        description: "درباره ما و تماس با ما",
+        icon: Globe2,
+      },
       { href: routes.settings, label: "تنظیمات", description: "بانک و LMS", icon: Settings },
     ],
   },
