@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { bootcampTitle, userName } from "@/lib/api/client";
 import { enrollmentStatusMeta } from "@/lib/api/labels";
+import { useAdminLookups } from "@/lib/api/lookups";
 import { useBootcamps, useEnrollments } from "@/lib/api/queries";
 import type { Enrollment } from "@/lib/api/types";
 import { formatJalaliDateTime } from "@/lib/format";
@@ -29,6 +29,7 @@ export default function EnrollmentsPage() {
   };
   const { data = [], isLoading } = useEnrollments(params);
   const bootcamps = useBootcamps();
+  const { userName, bootcampTitle } = useAdminLookups();
 
   const columns = useMemo<ColumnDef<Enrollment>[]>(
     () => [
@@ -71,7 +72,7 @@ export default function EnrollmentsPage() {
         ),
       },
     ],
-    [],
+    [userName, bootcampTitle],
   );
 
   return (

@@ -31,7 +31,6 @@ export default function SettingsPage() {
         title="تنظیمات عملیات"
         description="اطلاعاتی که در سایت کلاسور برای آپلود فیش و ورود به LMS به کاربر نشان داده می‌شود."
       />
-
       <form
         className="space-y-4"
         onSubmit={form.handleSubmit((values) =>

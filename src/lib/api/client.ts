@@ -1,14 +1,18 @@
+import { authApi } from "@/lib/api/auth.api";
 import { blogApi } from "@/lib/api/blog.api";
 import { bootcampsApi } from "@/lib/api/bootcamps.api";
 import { certificatesApi } from "@/lib/api/certificates.api";
 import { customersApi } from "@/lib/api/customers.api";
 import { dashboardApi } from "@/lib/api/dashboard.api";
+import { enrollmentsApi } from "@/lib/api/enrollments.api";
 import { instructorsApi } from "@/lib/api/instructors.api";
+import { pagesApi } from "@/lib/api/pages.api";
 import { partnersApi } from "@/lib/api/partners.api";
 import { paymentsApi } from "@/lib/api/payments.api";
+import { settingsApi } from "@/lib/api/settings.api";
 import { sponsorsApi } from "@/lib/api/sponsors.api";
+import { tasksApi } from "@/lib/api/tasks.api";
 import { topicsApi } from "@/lib/api/topics.api";
-import { mockStore } from "@/lib/api/mock/store";
 import {
   type BlogPostInput,
   type Bootcamp,
@@ -18,64 +22,31 @@ import {
   type InstructorInput,
   type ListParams,
   type LoginInput,
-  type SessionUser,
   type SponsorInput,
   type TopicInput,
   type UserUpdateInput,
 } from "@/lib/api/types";
-import { delay } from "@/lib/utils";
 
 /**
- * Hybrid facade:
- * - Live modules call real `*.api.ts` clients (cookie auth via `apiRequest`)
- * - Remaining modules stay on `mockStore` until wired one-by-one
- * - UI / React Query should only talk to `adminApi`, never `mockStore`
- *
- * Panel docs: https://api.kelaasor.com/swagger/docs/#/panel
+ * Live facade over `/panel/admin/...` (cookie auth via `apiRequest`).
  * Same `NEXT_PUBLIC_API_BASE_URL` as kelaasor-camp.
- *
- * Auth is local-only until POST /panel/admin/auth/login/ is fixed on backend.
+ * Docs: https://api.kelaasor.com/swagger/docs/#/panel
  */
-
-async function run<T>(fn: () => T): Promise<T> {
-  await delay(160);
-  return fn();
-}
-
-function localSession(input?: LoginInput): SessionUser {
-  const email = input?.email.trim() || "staff@local";
-  return {
-    id: 1,
-    email,
-    name: email.split("@")[0] || "مدیر",
-    role: "staff",
-  };
-}
-
 export const adminApi = {
-  /** LOCAL — backend login endpoint currently hangs / unusable */
   auth: {
-    login: async (input: LoginInput): Promise<SessionUser> => {
-      await delay(120);
-      return localSession(input);
-    },
-    me: async (): Promise<SessionUser> => {
-      await delay(80);
-      return localSession();
-    },
+    login: (input: LoginInput) => authApi.login(input),
+    me: () => authApi.me(),
+    logout: () => authApi.logout(),
   },
-  /** LIVE — /panel/admin/dashboard/ */
   dashboard: {
     stats: () => dashboardApi.stats(),
   },
-  /** MOCK — wire next */
   enrollments: {
-    list: (params?: ListParams) => run(() => mockStore.listEnrollments(params)),
-    get: (id: number) => run(() => mockStore.getEnrollment(id)),
+    list: (params?: ListParams) => enrollmentsApi.list(params),
+    get: (id: number) => enrollmentsApi.get(id),
     updateStatus: (id: number, status: EnrollmentStatus, notes?: string) =>
-      run(() => mockStore.updateEnrollmentStatus(id, status, notes)),
+      enrollmentsApi.updateStatus(id, status, notes),
   },
-  /** LIVE — /panel/admin/payments/... */
   payments: {
     list: (params?: ListParams) => paymentsApi.list(params),
     get: (id: number) => paymentsApi.get(id),
@@ -85,20 +56,34 @@ export const adminApi = {
     rejectInstallment: (paymentId: number, installmentId: number) =>
       paymentsApi.rejectInstallment(paymentId, installmentId),
   },
-  /** LIVE — /panel/admin/certificates/... (revoke not in API yet) */
   certificates: {
     list: (params?: ListParams) => certificatesApi.list(params),
     get: (id: number) => certificatesApi.get(id),
     issue: (enrollmentId: number) => certificatesApi.issue(enrollmentId),
     revoke: (id: number) => certificatesApi.revoke(id),
   },
-  /** MOCK — wire next */
   settings: {
-    get: () => run(() => mockStore.getSettings()),
+    get: () => settingsApi.get(),
     update: (patch: Partial<import("@/lib/api/types").AppSettings>) =>
-      run(() => mockStore.updateSettings(patch)),
+      settingsApi.update(patch),
   },
-  /** LIVE — /panel/admin/bootcamps/... */
+  pages: {
+    list: () => pagesApi.list(),
+    get: (key: string) => pagesApi.get(key),
+    update: (
+      key: string,
+      input: { title?: string; content?: string; data?: Record<string, unknown> },
+    ) => pagesApi.update(key, input),
+  },
+  tasks: {
+    list: () => tasksApi.list(),
+    get: (id: number) => tasksApi.get(id),
+    create: (input: import("@/lib/api/tasks.api").AdminTaskInput) =>
+      tasksApi.create(input),
+    update: (id: number, input: Partial<import("@/lib/api/tasks.api").AdminTaskInput>) =>
+      tasksApi.update(id, input),
+    remove: (id: number) => tasksApi.remove(id),
+  },
   bootcamps: {
     list: (params?: ListParams) => bootcampsApi.list(params),
     get: (id: number) => bootcampsApi.get(id),
@@ -111,13 +96,14 @@ export const adminApi = {
     setMedias: (id: number, medias: Bootcamp["medias"]) =>
       bootcampsApi.setMedias(id, medias),
   },
-  /** MOCK list/get — update goes through live customers PATCH */
   users: {
-    list: (params?: ListParams) => run(() => mockStore.listUsers(params)),
-    get: (id: number) => run(() => mockStore.getUser(id)),
+    list: async (params?: ListParams) => customersApi.list(params),
+    get: async (id: number) => {
+      const detail = await customersApi.get(id);
+      return detail.user;
+    },
     update: (id: number, patch: UserUpdateInput) => customersApi.update(id, patch),
   },
-  /** LIVE — /panel/admin/customers/... (follow-up/tags not in API yet) */
   customers: {
     list: (params?: ListParams) => customersApi.list(params),
     get: (id: number) => customersApi.get(id),
@@ -138,7 +124,6 @@ export const adminApi = {
     setTags: (userId: number, crmTags: string[]) =>
       customersApi.setTags(userId, crmTags),
   },
-  /** LIVE — /panel/admin/instructors/... */
   instructors: {
     list: (params?: ListParams) => instructorsApi.list(params),
     get: (id: number) => instructorsApi.get(id),
@@ -147,7 +132,6 @@ export const adminApi = {
       instructorsApi.update(id, input),
     remove: (id: number) => instructorsApi.remove(id),
   },
-  /** LIVE — /panel/admin/blog/... */
   blog: {
     list: (params?: ListParams) => blogApi.list(params),
     get: (id: number) => blogApi.get(id),
@@ -158,21 +142,18 @@ export const adminApi = {
     moderateComment: (postId: number, commentId: number, approved: boolean) =>
       blogApi.moderateComment(postId, commentId, approved),
   },
-  /** LIVE — /panel/admin/topics/... */
   topics: {
     list: () => topicsApi.list(),
     create: (input: TopicInput) => topicsApi.create(input),
     update: (id: number, input: TopicInput) => topicsApi.update(id, input),
     remove: (id: number) => topicsApi.remove(id),
   },
-  /** LIVE — /panel/admin/sponsors/... */
   sponsors: {
     list: () => sponsorsApi.list(),
     create: (input: SponsorInput) => sponsorsApi.create(input),
     update: (id: number, input: SponsorInput) => sponsorsApi.update(id, input),
     remove: (id: number) => sponsorsApi.remove(id),
   },
-  /** LIVE — /panel/admin/partners/... */
   partners: {
     list: () => partnersApi.list(),
     create: (input: import("@/lib/api/types").PartnerCompanyInput) =>
@@ -182,14 +163,3 @@ export const adminApi = {
     remove: (id: number) => partnersApi.remove(id),
   },
 };
-
-/** @deprecated Prefer values from query/API payloads once modules are live. */
-export function userName(userId: number) {
-  const user = mockStore.getUser(userId);
-  return user ? `${user.firstName} ${user.lastName}` : "کاربر";
-}
-
-/** @deprecated Prefer values from query/API payloads once modules are live. */
-export function bootcampTitle(bootcampId: number) {
-  return mockStore.getBootcamp(bootcampId)?.title ?? "بوت‌کمپ";
-}

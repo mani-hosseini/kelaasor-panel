@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { bootcampTitle, userName } from "@/lib/api/client";
+import { useAdminLookups } from "@/lib/api/lookups";
 import { usePayments } from "@/lib/api/queries";
 import type { ListParams, Payment } from "@/lib/api/types";
 import { formatPercent, formatToman, toFa } from "@/lib/format";
@@ -33,6 +33,7 @@ export default function PaymentsPageContent() {
 
   const [search, setSearch] = useState("");
   const { data = [], isLoading } = usePayments({ search, paymentFilter });
+  const { userName, bootcampTitle } = useAdminLookups();
 
   const columns = useMemo<ColumnDef<Payment>[]>(
     () => [
@@ -103,7 +104,7 @@ export default function PaymentsPageContent() {
         ),
       },
     ],
-    [],
+    [userName, bootcampTitle],
   );
 
   return (

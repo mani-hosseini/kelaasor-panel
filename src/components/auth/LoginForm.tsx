@@ -38,7 +38,7 @@ export function LoginForm() {
     setFormError(null);
     try {
       await adminApi.auth.login(values);
-      // Local UI gate for Next middleware (backend auth temporarily disabled).
+      // Next middleware gate on panel domain (API JWT cookies are on API host).
       setSessionCookie();
       toast.success("خوش آمدید");
       router.replace(search.get("next") || routes.root);

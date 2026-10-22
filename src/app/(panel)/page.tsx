@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { bootcampTitle, userName } from "@/lib/api/client";
+import { useAdminLookups } from "@/lib/api/lookups";
 import { useDashboard } from "@/lib/api/queries";
 import type { CustomerListItem } from "@/lib/api/types";
 import { formatJalaliDate, formatJalaliDateTime, formatPercent, formatToman, toFa } from "@/lib/format";
@@ -31,6 +31,7 @@ import { routes } from "@/lib/routes";
 
 export default function DashboardPage() {
   const { data, isLoading } = useDashboard();
+  const { userName, bootcampTitle } = useAdminLookups();
 
   if (isLoading || !data) {
     return (

@@ -37,6 +37,10 @@ export const queryKeys = {
   certificates: (params?: ListParams) => ["certificates", params] as const,
   certificate: (id: number) => ["certificate", id] as const,
   settings: ["settings"] as const,
+  pages: ["pages"] as const,
+  page: (key: string) => ["page", key] as const,
+  tasks: ["tasks"] as const,
+  task: (id: number) => ["task", id] as const,
 };
 
 export function useDashboard() {
@@ -54,7 +58,7 @@ export function useEnrollment(id: number) {
   return useQuery({
     queryKey: queryKeys.enrollment(id),
     queryFn: () => adminApi.enrollments.get(id),
-    enabled: Number.isFinite(id),
+    enabled: Number.isFinite(id) && id > 0,
   });
 }
 
@@ -84,7 +88,7 @@ export function usePayment(id: number) {
   return useQuery({
     queryKey: queryKeys.payment(id),
     queryFn: () => adminApi.payments.get(id),
-    enabled: Number.isFinite(id),
+    enabled: Number.isFinite(id) && id > 0,
   });
 }
 
@@ -169,6 +173,74 @@ export function useUpdateSettings() {
       adminApi.settings.update(patch),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.settings });
+    },
+  });
+}
+
+export function useStaticPage(key: string) {
+  return useQuery({
+    queryKey: queryKeys.page(key),
+    queryFn: () => adminApi.pages.get(key),
+    enabled: Boolean(key),
+  });
+}
+
+export function useUpdateStaticPage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      key: string;
+      title?: string;
+      content?: string;
+      data?: Record<string, unknown>;
+    }) => adminApi.pages.update(input.key, input),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.page(variables.key) });
+      await client.invalidateQueries({ queryKey: queryKeys.pages });
+    },
+  });
+}
+
+export function useTasks() {
+  return useQuery({
+    queryKey: queryKeys.tasks,
+    queryFn: () => adminApi.tasks.list(),
+  });
+}
+
+export function useCreateTask() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import("@/lib/api/tasks.api").AdminTaskInput) =>
+      adminApi.tasks.create(input),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.tasks });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      id: number;
+      data: Partial<import("@/lib/api/tasks.api").AdminTaskInput>;
+    }) => adminApi.tasks.update(input.id, input.data),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.tasks });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useDeleteTask() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => adminApi.tasks.remove(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.tasks });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
 }
@@ -284,7 +356,7 @@ export function useCustomer(id: number) {
   return useQuery({
     queryKey: queryKeys.customer(id),
     queryFn: () => adminApi.customers.get(id),
-    enabled: Number.isFinite(id),
+    enabled: Number.isFinite(id) && id > 0,
   });
 }
 

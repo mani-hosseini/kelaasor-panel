@@ -31,7 +31,10 @@ function normalizeCertificate(item: unknown): Certificate | null {
     title,
     banner: rawBanner ? normalizeMediaUrl(rawBanner) : null,
     issuedAt: asStr(item.issued_at) ?? asStr(item.issuedAt) ?? "",
-    revoked: asBool(item.revoked),
+    revoked:
+      asBool(item.revoked) ||
+      asBool(item.is_revoked ?? item.isRevoked) ||
+      asStr(item.status)?.toLowerCase() === "revoked",
   };
 }
 
@@ -72,8 +75,11 @@ export const certificatesApi = {
     return assertCertificate(payload);
   },
 
-  /** Backend has no revoke endpoint yet. */
-  async revoke(_id: number): Promise<Certificate> {
-    throw new Error("باطل‌سازی گواهی هنوز در API پشتیبانی نمی‌شود.");
+  async revoke(id: number): Promise<Certificate> {
+    const payload = await apiRequest<unknown>(
+      `/panel/admin/certificates/${id}/revoke/`,
+      { method: "POST" },
+    );
+    return assertCertificate(payload);
   },
 };

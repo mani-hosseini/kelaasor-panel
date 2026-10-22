@@ -484,13 +484,38 @@ export const customersApi = {
   },
 
   async setFollowUp(
-    _userId: number,
-    _followUpAt: string | null,
+    userId: number,
+    followUpAt: string | null,
   ): Promise<AdminUser> {
-    throw new Error("تنظیم پیگیری مشتری هنوز در API پشتیبانی نمی‌شود.");
+    const payload = await apiRequest<unknown>(
+      `/panel/admin/customers/${userId}/follow-up/`,
+      {
+        method: "POST",
+        body: {
+          follow_up_at: followUpAt,
+          followUpAt,
+        },
+      },
+    );
+    const item = normalizeCustomerListItem(unwrapData(payload));
+    if (!item) throw new Error("پاسخ پیگیری مشتری معتبر نیست");
+    return item;
   },
 
-  async setTags(_userId: number, _crmTags: string[]): Promise<AdminUser> {
-    throw new Error("برچسب‌های CRM هنوز در API پشتیبانی نمی‌شوند.");
+  async setTags(userId: number, crmTags: string[]): Promise<AdminUser> {
+    const payload = await apiRequest<unknown>(
+      `/panel/admin/customers/${userId}/tags/`,
+      {
+        method: "POST",
+        body: {
+          crm_tags: crmTags,
+          crmTags,
+          tags: crmTags,
+        },
+      },
+    );
+    const item = normalizeCustomerListItem(unwrapData(payload));
+    if (!item) throw new Error("پاسخ برچسب‌های CRM معتبر نیست");
+    return item;
   },
 };

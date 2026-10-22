@@ -72,7 +72,8 @@ function normalizeQuickLink(item: unknown): DashboardQuickLink | null {
 
 function normalizeTask(item: unknown): DashboardTaskItem | null {
   if (!isObj(item)) return null;
-  const id = asStr(item.id);
+  const numericId = asNum(item.id);
+  const id = asStr(item.id) ?? (numericId != null ? String(numericId) : null);
   const title = asStr(item.title);
   if (!id || !title) return null;
   return {

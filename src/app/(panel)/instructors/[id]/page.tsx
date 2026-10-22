@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,8 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { mockStore } from "@/lib/api/mock/store";
-import { useInstructor, useSaveInstructor } from "@/lib/api/queries";
+import { useBootcamps, useInstructor, useSaveInstructor } from "@/lib/api/queries";
 import type { InstructorInput } from "@/lib/api/types";
 import { routes } from "@/lib/routes";
 
@@ -32,11 +32,15 @@ export default function InstructorDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const { data, isLoading } = useInstructor(id);
+  const bootcampsQuery = useBootcamps();
   const save = useSaveInstructor();
 
-  if (isLoading || !data) return <Skeleton className="h-96" />;
+  const bootcamps = useMemo(
+    () => (bootcampsQuery.data ?? []).filter((item) => item.instructorIds.includes(id)),
+    [bootcampsQuery.data, id],
+  );
 
-  const bootcamps = mockStore.listBootcamps().filter((item) => item.instructorIds.includes(id));
+  if (isLoading || !data) return <Skeleton className="h-96" />;
 
   return (
     <div className="space-y-6">
@@ -53,7 +57,11 @@ export default function InstructorDetailPage() {
         }} submitting={save.isPending} onSave={(values) => save.mutate({ id, data: values }, { onSuccess: () => toast.success("ذخیره شد") })} />
         <div className="surface-panel p-5">
           <h2 className="mb-3 font-bold">بوت‌کمپ‌های مرتبط</h2>
-          {bootcamps.length === 0 ? <p className="text-sm text-muted-foreground">هنوز وصل نشده.</p> : null}
+          {bootcampsQuery.isLoading ? (
+            <Skeleton className="h-24" />
+          ) : bootcamps.length === 0 ? (
+            <p className="text-sm text-muted-foreground">هنوز وصل نشده.</p>
+          ) : null}
           <ul className="space-y-2 text-sm">
             {bootcamps.map((item) => (
               <li key={item.id} className="rounded-xl border border-border px-3 py-2">

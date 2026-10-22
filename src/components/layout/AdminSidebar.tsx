@@ -21,6 +21,7 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { adminApi } from "@/lib/api/client";
 import { clearSessionCookie } from "@/lib/auth";
 import { isNavActive, routes } from "@/lib/routes";
 import { cn, initials } from "@/lib/utils";
@@ -191,7 +192,12 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
         <Button
           type="button"
           variant="ghost"
-          onClick={() => {
+          onClick={async () => {
+            try {
+              await adminApi.auth.logout();
+            } catch {
+              // still clear local gate even if API logout fails
+            }
             clearSessionCookie();
             router.replace(routes.login);
           }}

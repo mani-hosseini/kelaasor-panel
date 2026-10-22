@@ -9,34 +9,21 @@ import { DataTable } from "@/components/data-table/DataTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { bootcampTitle, userName } from "@/lib/api/client";
-import { mockStore } from "@/lib/api/mock/store";
+import { useAdminLookups } from "@/lib/api/lookups";
 import { useCertificates, useIssueCertificate, useRevokeCertificate } from "@/lib/api/queries";
-import { ENROLLMENT_STATUS, type Certificate } from "@/lib/api/types";
+import type { Certificate } from "@/lib/api/types";
 import { formatJalaliDate, toFa } from "@/lib/format";
 import { routes } from "@/lib/routes";
 
 export default function CertificatesPage() {
   const [search, setSearch] = useState("");
+  const [enrollmentId, setEnrollmentId] = useState("");
   const { data = [], isLoading } = useCertificates({ search });
   const issue = useIssueCertificate();
   const revoke = useRevokeCertificate();
-
-  const pendingEnrollments = mockStore
-    .listEnrollments()
-    .filter(
-      (item) =>
-        item.status === ENROLLMENT_STATUS.CONFIRMED &&
-        !data.some((cert) => cert.enrollmentId === item.id && !cert.revoked),
-    );
+  const { userName, bootcampTitle } = useAdminLookups();
 
   const columns = useMemo<ColumnDef<Certificate>[]>(
     () => [
@@ -91,7 +78,7 @@ export default function CertificatesPage() {
         ),
       },
     ],
-    [revoke],
+    [revoke, userName, bootcampTitle],
   );
 
   return (
@@ -99,31 +86,37 @@ export default function CertificatesPage() {
       <PageHeader
         eyebrow="عملیات"
         title="گواهی‌ها"
-        description={`${toFa(data.length)} گواهی — صدور خودکار پس از تأیید نهایی ثبت‌نام در سایت کلاسور.`}
+        description={`${toFa(data.length)} گواهی — لیست از API؛ صدور دستی با شناسه ثبت‌نام.`}
         actions={
-          pendingEnrollments.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <Select
-                onValueChange={(value) =>
-                  issue.mutate(Number(value), {
-                    onSuccess: () => toast.success("گواهی صادر شد"),
-                    onError: (error) => toast.error(error.message),
-                  })
+          <div className="flex items-center gap-2">
+            <Input
+              dir="ltr"
+              className="w-40"
+              placeholder="enrollment id"
+              value={enrollmentId}
+              onChange={(event) => setEnrollmentId(event.target.value)}
+            />
+            <Button
+              size="sm"
+              disabled={issue.isPending || !enrollmentId.trim()}
+              onClick={() => {
+                const id = Number(enrollmentId);
+                if (!Number.isFinite(id) || id <= 0) {
+                  toast.error("شناسه ثبت‌نام معتبر نیست");
+                  return;
                 }
-              >
-                <SelectTrigger className="w-64">
-                  <SelectValue placeholder={`صدور برای ${toFa(pendingEnrollments.length)} مورد`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {pendingEnrollments.map((item) => (
-                    <SelectItem key={item.id} value={String(item.id)}>
-                      {userName(item.userId)} — {bootcampTitle(item.bootcampId)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null
+                issue.mutate(id, {
+                  onSuccess: () => {
+                    toast.success("گواهی صادر شد");
+                    setEnrollmentId("");
+                  },
+                  onError: (error) => toast.error(error.message),
+                });
+              }}
+            >
+              صدور
+            </Button>
+          </div>
         }
       />
       <div className="surface-panel p-5">

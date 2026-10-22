@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { bootcampTitle } from "@/lib/api/client";
+import { useAdminLookups } from "@/lib/api/lookups";
 import {
   useAddCustomerCall,
   useAddCustomerNote,
@@ -53,6 +53,7 @@ export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const { data, isLoading } = useCustomer(id);
+  const { bootcampTitle } = useAdminLookups();
   const updateUser = useUpdateUser();
   const addNote = useAddCustomerNote();
   const deleteNote = useDeleteCustomerNote();

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { bootcampTitle, userName } from "@/lib/api/client";
+import { useAdminLookups } from "@/lib/api/lookups";
 import {
   useMarkInstallmentPaid,
   usePayment,
@@ -25,6 +25,7 @@ export default function PaymentDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const { data, isLoading } = usePayment(id);
+  const { userName, bootcampTitle } = useAdminLookups();
   const verify = useVerifyPayment();
   const markPaid = useMarkInstallmentPaid();
   const rejectInstallment = useRejectInstallment();

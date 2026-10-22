@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useParams } from "next/navigation";
 
 import { EnrollmentStatusBadge } from "@/components/enrollments/EnrollmentStatusBadge";
@@ -10,9 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { bootcampTitle, userName } from "@/lib/api/client";
-import { mockStore } from "@/lib/api/mock/store";
-import { useEnrollment } from "@/lib/api/queries";
+import { useAdminLookups } from "@/lib/api/lookups";
+import {
+  useCertificates,
+  useCustomer,
+  useEnrollment,
+  usePayment,
+} from "@/lib/api/queries";
 import { formatJalaliDateTime } from "@/lib/format";
 import { routes } from "@/lib/routes";
 
@@ -20,16 +25,24 @@ export default function EnrollmentDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const { data, isLoading } = useEnrollment(id);
+  const { userName, bootcampTitle } = useAdminLookups();
+  const customer = useCustomer(data?.userId ?? 0);
+  const payment = usePayment(data?.paymentId ?? 0);
+  const certificates = useCertificates();
+
+  const certificate = useMemo(
+    () =>
+      (certificates.data ?? []).find(
+        (item) => item.enrollmentId === id && !item.revoked,
+      ),
+    [certificates.data, id],
+  );
 
   if (isLoading || !data) {
     return <Skeleton className="h-96" />;
   }
 
-  const user = mockStore.getUser(data.userId);
-  const payment = data.paymentId ? mockStore.getPayment(data.paymentId) : null;
-  const certificate = mockStore
-    .listCertificates()
-    .find((item) => item.enrollmentId === data.id && !item.revoked);
+  const user = customer.data?.user;
 
   return (
     <div dir="rtl" className="space-y-6 text-right">
@@ -54,16 +67,22 @@ export default function EnrollmentDetailPage() {
             <CardTitle>پروفایل دانشجو</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
-            <Field label="موبایل" value={user?.phoneNumber} ltr />
-            <Field label="ایمیل" value={user?.email} ltr />
-            <Field label="کد ملی" value={user?.profile.nationalId} ltr />
-            <Field label="تحصیلات" value={user?.profile.educationLevelDisplay} />
-            <Field label="رشته" value={user?.profile.fieldOfStudy} />
-            <Field label="لینکدین" value={user?.profile.linkedinUrl ?? "—"} />
-            <div className="sm:col-span-2">
-              <p className="text-xs text-muted-foreground">تجربه قبلی</p>
-              <p className="mt-1">{user?.profile.experienceDescription ?? "—"}</p>
-            </div>
+            {customer.isLoading ? (
+              <Skeleton className="h-24 sm:col-span-2" />
+            ) : (
+              <>
+                <Field label="موبایل" value={user?.phoneNumber} ltr />
+                <Field label="ایمیل" value={user?.email} ltr />
+                <Field label="کد ملی" value={user?.profile.nationalId} ltr />
+                <Field label="تحصیلات" value={user?.profile.educationLevelDisplay} />
+                <Field label="رشته" value={user?.profile.fieldOfStudy} />
+                <Field label="لینکدین" value={user?.profile.linkedinUrl ?? "—"} />
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-muted-foreground">تجربه قبلی</p>
+                  <p className="mt-1">{user?.profile.experienceDescription ?? "—"}</p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -89,26 +108,30 @@ export default function EnrollmentDetailPage() {
             <CardTitle>پرداخت مرتبط</CardTitle>
           </CardHeader>
           <CardContent>
-            {payment ? (
+            {!data.paymentId ? (
+              <p className="text-sm text-muted-foreground">هنوز پرداختی ثبت نشده است.</p>
+            ) : payment.isLoading ? (
+              <Skeleton className="h-16" />
+            ) : payment.data ? (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="font-semibold">{payment.paymentStatus}</p>
+                  <p className="font-semibold">{payment.data.paymentStatus}</p>
                   <p className="text-sm text-muted-foreground">
-                    {payment.paymentType === 2 ? "اقساطی" : "نقدی"} — رسید:{" "}
-                    {payment.receipt ? "دارد" : "ندارد"}
+                    {payment.data.paymentType === 2 ? "اقساطی" : "نقدی"} — رسید:{" "}
+                    {payment.data.receipt ? "دارد" : "ندارد"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={payment.verified ? "success" : "warning"}>
-                    {payment.verified ? "تأییدشده" : "در انتظار"}
+                  <Badge variant={payment.data.verified ? "success" : "warning"}>
+                    {payment.data.verified ? "تأییدشده" : "در انتظار"}
                   </Badge>
                   <Button asChild size="sm">
-                    <Link href={routes.payment(payment.id)}>بررسی فیش</Link>
+                    <Link href={routes.payment(payment.data.id)}>بررسی فیش</Link>
                   </Button>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">هنوز پرداختی ثبت نشده است.</p>
+              <p className="text-sm text-muted-foreground">پرداخت مرتبط پیدا نشد.</p>
             )}
           </CardContent>
         </Card>

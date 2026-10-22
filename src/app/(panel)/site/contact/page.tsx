@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useStaticPage, useUpdateStaticPage } from "@/lib/api/queries";
 import { defaultContactContent } from "@/lib/site-content/seed";
 import type { ContactPageContent } from "@/lib/site-content/types";
 
@@ -19,34 +21,61 @@ function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export default function SiteContactPage() {
-  const [content, setContent] = useState<ContactPageContent>(defaultContactContent);
+function parseContactData(data: Record<string, unknown> | undefined): ContactPageContent | null {
+  if (!data || typeof data !== "object") return null;
+  if (!("hero" in data) || typeof data.hero !== "object" || data.hero == null) return null;
+  return data as unknown as ContactPageContent;
+}
 
-  function saveUiOnly() {
-    toast.message("فعلاً فقط UI است", {
-      description: "محتوای تماس با ما هنوز به API وصل نشده؛ تغییرات فقط در این جلسه نگه داشته می‌شود.",
-    });
-  }
+export default function SiteContactPage() {
+  const page = useStaticPage("contact");
+  const savePage = useUpdateStaticPage();
+  const [content, setContent] = useState<ContactPageContent>(defaultContactContent);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!page.data || hydrated) return;
+    const fromApi = parseContactData(page.data.data);
+    setContent(fromApi ?? defaultContactContent);
+    setHydrated(true);
+  }, [page.data, hydrated]);
 
   function resetSeed() {
     setContent(defaultContactContent);
     toast.success("به محتوای پیش‌فرض کمپ برگشت");
   }
 
+  function save() {
+    savePage.mutate(
+      {
+        key: "contact",
+        title: content.hero.heading || "تماس با ما",
+        content: content.hero.description,
+        data: content as unknown as Record<string, unknown>,
+      },
+      {
+        onSuccess: () => toast.success("صفحه تماس ذخیره شد"),
+        onError: (error) => toast.error(error.message),
+      },
+    );
+  }
+
+  if (page.isLoading && !hydrated) return <Skeleton className="h-96" />;
+
   return (
     <div dir="rtl" className="space-y-6 text-right">
       <PageHeader
         eyebrow="صفحات سایت"
         title="تماس با ما"
-        description="محتوای صفحه /contact در سایت کلاسور کمپ — فعلاً فقط ویرایش UI بدون ذخیره سرور."
+        description="محتوای صفحه /contact — ذخیره روی /panel/admin/pages/contact/"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="warning">بدون API</Badge>
+            <Badge variant="success">API</Badge>
             <Button type="button" variant="outline" onClick={resetSeed}>
               بازگردانی seed
             </Button>
-            <Button type="button" onClick={saveUiOnly}>
-              ذخیره (UI)
+            <Button type="button" disabled={savePage.isPending} onClick={save}>
+              ذخیره
             </Button>
           </div>
         }
