@@ -8,6 +8,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
+import { InstructorSurveysCard } from "@/components/surveys/InstructorSurveysCard";
 import { Button } from "@/components/ui/button";
 import { ImageDropField } from "@/components/ui/ImageDropField";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,7 @@ export default function InstructorDetailPage() {
             ))}
           </ul>
         </div>
+        <InstructorSurveysCard instructorId={id} />
       </div>
     </div>
   );
