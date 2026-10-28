@@ -11,6 +11,7 @@ import {
   Globe2,
   LayoutDashboard,
   LogOut,
+  MessageSquareHeart,
   Settings,
   Sparkles,
   UserRound,
@@ -47,6 +48,12 @@ const groups = [
         icon: BookOpen,
       },
       { href: routes.instructors, label: "مدرس‌ها", description: "منتور و مربی", icon: UserRound },
+      {
+        href: routes.surveys,
+        label: "نظرسنجی‌ها",
+        description: "NPS و رضایت از مدرس",
+        icon: MessageSquareHeart,
+      },
     ],
   },
   {

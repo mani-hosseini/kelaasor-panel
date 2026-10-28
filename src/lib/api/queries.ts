@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { adminApi } from "@/lib/api/client";
+import type { SurveyInput, SurveyListParams } from "@/lib/api/surveys.api";
 import type {
   BlogPostInput,
   Bootcamp,
@@ -40,6 +41,10 @@ export const queryKeys = {
   pages: ["pages"] as const,
   page: (key: string) => ["page", key] as const,
   tasks: ["tasks"] as const,
+  surveys: (params?: SurveyListParams) => ["surveys", params] as const,
+  survey: (id: number) => ["survey", id] as const,
+  surveyReport: (id: number) => ["survey-report", id] as const,
+  surveyFormOptions: ["survey-form-options"] as const,
   task: (id: number) => ["task", id] as const,
 };
 
@@ -615,5 +620,75 @@ export function useDeletePartner() {
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.partners });
     },
+  });
+}
+
+export function useSurveys(params?: SurveyListParams) {
+  return useQuery({
+    queryKey: queryKeys.surveys(params),
+    queryFn: () => adminApi.surveys.list(params),
+    // Search/filter change the key; keep the table (and the focused search
+    // input) mounted instead of flashing back to the loading skeleton.
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useSurvey(id: number) {
+  return useQuery({
+    queryKey: queryKeys.survey(id),
+    queryFn: () => adminApi.surveys.get(id),
+    enabled: Number.isFinite(id) && id > 0,
+  });
+}
+
+export function useSurveyReport(id: number, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.surveyReport(id),
+    queryFn: () => adminApi.surveys.report(id),
+    enabled: enabled && Number.isFinite(id) && id > 0,
+  });
+}
+
+export function useSurveyFormOptions() {
+  return useQuery({
+    queryKey: queryKeys.surveyFormOptions,
+    queryFn: adminApi.surveys.formOptions,
+  });
+}
+
+async function invalidateSurveys(client: ReturnType<typeof useQueryClient>) {
+  await client.invalidateQueries({ queryKey: ["surveys"] });
+  await client.invalidateQueries({ queryKey: ["survey"] });
+  await client.invalidateQueries({ queryKey: ["survey-report"] });
+}
+
+export function useSaveSurvey() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id?: number; data: SurveyInput }) =>
+      input.id
+        ? adminApi.surveys.update(input.id, input.data)
+        : adminApi.surveys.create(input.data),
+    // Also on error: e.g. "already has responses" means our copy is stale.
+    onSettled: () => invalidateSurveys(client),
+  });
+}
+
+export function useUpdateSurvey() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number; data: Partial<SurveyInput> }) =>
+      adminApi.surveys.update(input.id, input.data),
+    onSuccess: () => invalidateSurveys(client),
+  });
+}
+
+export function useSurveyAction() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: number; action: "activate" | "close" | "remove" }) => {
+      await adminApi.surveys[input.action](input.id);
+    },
+    onSuccess: () => invalidateSurveys(client),
   });
 }

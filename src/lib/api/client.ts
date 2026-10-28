@@ -11,6 +11,11 @@ import { partnersApi } from "@/lib/api/partners.api";
 import { paymentsApi } from "@/lib/api/payments.api";
 import { settingsApi } from "@/lib/api/settings.api";
 import { sponsorsApi } from "@/lib/api/sponsors.api";
+import {
+  surveysApi,
+  type SurveyInput,
+  type SurveyListParams,
+} from "@/lib/api/surveys.api";
 import { tasksApi } from "@/lib/api/tasks.api";
 import { topicsApi } from "@/lib/api/topics.api";
 import {
@@ -131,6 +136,17 @@ export const adminApi = {
     update: (id: number, input: InstructorInput) =>
       instructorsApi.update(id, input),
     remove: (id: number) => instructorsApi.remove(id),
+  },
+  surveys: {
+    list: (params?: SurveyListParams) => surveysApi.list(params),
+    get: (id: number) => surveysApi.get(id),
+    create: (input: SurveyInput) => surveysApi.create(input),
+    update: (id: number, input: Partial<SurveyInput>) => surveysApi.update(id, input),
+    remove: (id: number) => surveysApi.remove(id),
+    activate: (id: number) => surveysApi.activate(id),
+    close: (id: number) => surveysApi.close(id),
+    report: (id: number) => surveysApi.report(id),
+    formOptions: () => surveysApi.formOptions(),
   },
   blog: {
     list: (params?: ListParams) => blogApi.list(params),
