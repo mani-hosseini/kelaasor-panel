@@ -66,6 +66,7 @@ export type Instructor = {
   avatar: string | null;
   jobTitle: string;
   linkedinUrl: string;
+  instagramUrl: string;
   company: string | null;
   companyLogo: string | null;
   bio: string;
@@ -258,6 +259,8 @@ export type Payment = {
   paidPercentage: number;
   totalAmount: number;
   paidAmount: number;
+  /** Manual panel coupon discount in toman (subtracted from total). */
+  couponDiscount: number;
   receipt: string | null;
   cheque: string | null;
   chequeNumber: string | null;
@@ -379,6 +382,44 @@ export type ListParams = {
   paymentFilter?: "all" | "awaiting" | "installment";
 };
 
+/** Panel-managed expense categories for the Finance hub (Kelaasor ops). */
+export const EXPENSE_CATEGORY = {
+  INSTRUCTOR: "instructor",
+  VENUE: "venue",
+  MARKETING: "marketing",
+  PLATFORM: "platform",
+  OPERATIONS: "operations",
+  CONTENT: "content",
+} as const;
+
+export type ExpenseCategory = (typeof EXPENSE_CATEGORY)[keyof typeof EXPENSE_CATEGORY];
+
+export const expenseCategoryMeta: Record<
+  ExpenseCategory,
+  { label: string; hint: string }
+> = {
+  instructor: { label: "حق‌التدریس", hint: "مدرس، منتور و مهمان" },
+  venue: { label: "فضای حضوری", hint: "اجاره و تجهیزات فصل‌های حضوری" },
+  marketing: { label: "جذب و تبلیغات", hint: "کمپین، ادز و همکاری" },
+  platform: { label: "زیرساخت آنلاین", hint: "LMS، سرور و ابزار آنلاین" },
+  operations: { label: "عملیات", hint: "پشتیبانی، اداری و بانکی" },
+  content: { label: "محتوا و ابزار", hint: "تولید محتوا و نرم‌افزار" },
+};
+
+export type Expense = {
+  id: number;
+  title: string;
+  category: ExpenseCategory;
+  amount: number;
+  /** Jalali season label e.g. پاییز ۱۴۰۴ — for seasonal in-person cohorts */
+  season: string | null;
+  bootcampId: number | null;
+  /** online | in_person | shared */
+  delivery: "online" | "in_person" | "shared";
+  spentAt: string;
+  note: string;
+};
+
 export const EVENT_STATUS = {
   PRE_REGISTERING: 0,
   REGISTERING: 1,
@@ -435,6 +476,8 @@ export type InstructorInput = {
   phoneNumber?: string;
   jobTitle: string;
   linkedinUrl: string;
+  /** Empty string allowed when the instructor has no Instagram. */
+  instagramUrl: string;
   company: string;
   bio: string;
   avatar: string | null;

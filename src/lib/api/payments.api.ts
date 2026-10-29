@@ -1,3 +1,7 @@
+import {
+  setStoredCouponDiscount,
+  withCouponOverlay,
+} from "@/lib/api/couponStore";
 import { apiRequest } from "@/lib/api/http";
 import {
   asBool,
@@ -72,7 +76,7 @@ function normalizePayment(item: unknown): Payment | null {
     .map(normalizeInstallment)
     .filter((row): row is PaymentInstallment => row != null);
 
-  return {
+  return withCouponOverlay({
     id,
     enrollmentId,
     userId,
@@ -83,12 +87,14 @@ function normalizePayment(item: unknown): Payment | null {
     paidPercentage,
     totalAmount: asNum(item.total_amount) ?? asNum(item.totalAmount) ?? 0,
     paidAmount: asNum(item.paid_amount) ?? asNum(item.paidAmount) ?? 0,
+    couponDiscount:
+      asNum(item.coupon_discount) ?? asNum(item.couponDiscount) ?? 0,
     receipt: receiptRaw ? normalizeMediaUrl(receiptRaw) : null,
     cheque: chequeRaw ? normalizeMediaUrl(chequeRaw) : null,
     chequeNumber: asStr(item.cheque_number) ?? asStr(item.chequeNumber),
     verified: inferVerified(item, paidPercentage),
     installments,
-  };
+  });
 }
 
 function assertPayment(payload: unknown): Payment {
@@ -161,6 +167,15 @@ export const paymentsApi = {
       `/panel/admin/payments/${paymentId}/installments/${installmentId}/reject/`,
       { method: "POST" },
     );
+    return this.get(paymentId);
+  },
+
+  /**
+   * Panel-side coupon until backend exposes a dedicated endpoint.
+   * Persists in localStorage and overlays on subsequent reads.
+   */
+  async applyCoupon(paymentId: number, amount: number): Promise<Payment> {
+    setStoredCouponDiscount(paymentId, amount);
     return this.get(paymentId);
   },
 };

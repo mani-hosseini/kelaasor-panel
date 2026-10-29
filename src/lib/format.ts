@@ -9,6 +9,22 @@ export function formatToman(amount: number | null | undefined) {
   return `${toFa(amount.toLocaleString("en-US"))} تومان`;
 }
 
+/** Compact toman for charts/KPIs — e.g. ۱۲٫۴ میلیون */
+export function formatTomanCompact(amount: number | null | undefined) {
+  if (amount == null) return "—";
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000_000) {
+    return `${toFa((amount / 1_000_000_000).toFixed(1))} میلیارد`;
+  }
+  if (abs >= 1_000_000) {
+    return `${toFa((amount / 1_000_000).toFixed(1))} میلیون`;
+  }
+  if (abs >= 1_000) {
+    return `${toFa(Math.round(amount / 1_000).toLocaleString("en-US"))} هزار`;
+  }
+  return toFa(amount);
+}
+
 export function formatJalaliDate(value: string | null | undefined) {
   if (!value) return "—";
   const date = new Date(value);
@@ -18,6 +34,28 @@ export function formatJalaliDate(value: string | null | undefined) {
     month: "long",
     day: "numeric",
   }).format(date);
+}
+
+/** Season + Jalali year from a date, e.g. «پاییز ۱۴۰۴» (matches backend jalali_session). */
+export function formatJalaliSession(value: string | null | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const monthRaw = parts.find((part) => part.type === "month")?.value;
+  const month = Number(monthRaw);
+  if (!year || !month) return null;
+
+  const season =
+    month <= 3 ? "بهار" : month <= 6 ? "تابستان" : month <= 9 ? "پاییز" : "زمستان";
+
+  return `${season} ${toFa(year)}`;
 }
 
 export function formatJalaliDateTime(value: string | null | undefined) {

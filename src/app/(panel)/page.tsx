@@ -232,8 +232,11 @@ export default function DashboardPage() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
             <CardTitle>کارهای امروز من</CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <Link href={routes.tasks}>همه تسک‌ها</Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>

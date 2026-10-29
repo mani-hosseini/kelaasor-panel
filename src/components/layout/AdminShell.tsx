@@ -9,6 +9,7 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { CrmQuickActions } from "@/components/layout/CrmQuickActions";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { AdminSidebar, mobileNav } from "@/components/layout/AdminSidebar";
+import { MockModeBanner } from "@/components/layout/MockModeBanner";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/lib/api/queries";
 import { isNavActive } from "@/lib/routes";
@@ -18,8 +19,9 @@ import { cn } from "@/lib/utils";
 function resolveTitle(pathname: string) {
   if (pathname.startsWith("/customers") || pathname.startsWith("/users")) return "مشتریان";
   if (pathname.startsWith("/enrollments")) return "ثبت‌نام‌ها";
+  if (pathname.startsWith("/tasks")) return "تسک‌ها";
   if (pathname.startsWith("/payments")) return "پرداخت‌ها";
-  if (pathname.startsWith("/certificates")) return "گواهی‌ها";
+  if (pathname.startsWith("/finance")) return "مالی";
   if (pathname.startsWith("/bootcamps")) return "بوت‌کمپ‌ها";
   if (pathname.startsWith("/instructors")) return "مدرس‌ها";
   if (pathname.startsWith("/topics")) return "موضوع‌ها";
@@ -54,7 +56,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pending = stats.data?.pendingAdminActions ?? 0;
 
   return (
-    <div dir="rtl" className="min-h-dvh bg-background text-foreground">
+    <div dir="rtl" className="min-h-dvh bg-background text-right text-foreground">
+      <MockModeBanner />
       <div className="mx-auto flex min-h-dvh max-w-[96rem]">
         <div className="sticky top-0 hidden h-dvh w-72 shrink-0 lg:block">
           <AdminSidebar adminName="مدیر کلاسور" className="h-full" />
@@ -102,7 +105,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <Button variant="outline" size="icon" className="relative">
                   <Bell className="size-4" />
                   {pending > 0 ? (
-                    <span className="absolute -top-1 -left-1 grid min-w-4 place-items-center rounded-full bg-orange px-1 text-[10px] text-white">
+                    <span className="absolute -top-1 -end-1 grid min-w-4 place-items-center rounded-full bg-orange px-1 text-[10px] text-white">
                       {toFa(pending)}
                     </span>
                   ) : null}
@@ -111,7 +114,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 px-3 py-5 pb-24 sm:px-5 lg:px-8 lg:pb-8">
+          <main className="flex-1 px-3 py-5 pb-24 text-right sm:px-5 lg:px-8 lg:pb-8">
             <CrmQuickActions className="mb-4 flex items-center gap-1.5 md:hidden" />
             {children}
           </main>
@@ -122,7 +125,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <button className="absolute inset-0 bg-brand-950/50" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 end-0 w-80 max-w-[85vw]">
-            <div className="absolute top-3 left-3 z-10">
+            <div className="absolute top-3 start-3 z-10">
               <Button size="icon" variant="outline" onClick={() => setOpen(false)}>
                 <X className="size-4" />
               </Button>

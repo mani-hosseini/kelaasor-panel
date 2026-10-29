@@ -150,7 +150,7 @@ export default function EnrollmentDetailPage() {
                   </p>
                 </div>
                 <Button asChild size="sm" variant="outline">
-                  <Link href={routes.certificates}>مدیریت گواهی‌ها</Link>
+                  <Link href={routes.bootcamp(data.bootcampId)}>صدور در بوت‌کمپ</Link>
                 </Button>
               </div>
             ) : (

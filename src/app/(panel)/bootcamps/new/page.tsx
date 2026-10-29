@@ -13,7 +13,7 @@ export default function NewBootcampPage() {
   const create = useCreateBootcamp();
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader backHref={routes.bootcamps} eyebrow="بوت‌کمپ" title="بوت‌کمپ جدید" />
       <div className="surface-panel p-5">
         <BootcampForm

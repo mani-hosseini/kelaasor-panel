@@ -6,6 +6,9 @@ import { customersApi } from "@/lib/api/customers.api";
 import { dashboardApi } from "@/lib/api/dashboard.api";
 import { enrollmentsApi } from "@/lib/api/enrollments.api";
 import { instructorsApi } from "@/lib/api/instructors.api";
+import { isMockMode } from "@/lib/api/mode";
+import { mockExtras } from "@/lib/api/mock/extras";
+import { mockStore } from "@/lib/api/mock/store";
 import { pagesApi } from "@/lib/api/pages.api";
 import { partnersApi } from "@/lib/api/partners.api";
 import { paymentsApi } from "@/lib/api/payments.api";
@@ -22,94 +25,247 @@ import {
   type InstructorInput,
   type ListParams,
   type LoginInput,
+  type SessionUser,
   type SponsorInput,
   type TopicInput,
   type UserUpdateInput,
 } from "@/lib/api/types";
+import { delay } from "@/lib/utils";
 
 /**
- * Live facade over `/panel/admin/...` (cookie auth via `apiRequest`).
- * Same `NEXT_PUBLIC_API_BASE_URL` as kelaasor-camp.
+ * Hybrid facade:
+ * - Live: `/panel/admin/...` via `*.api.ts` (cookie auth)
+ * - Mock: `NEXT_PUBLIC_USE_MOCK=true` → seed `mockStore` (offline UI)
+ *
  * Docs: https://api.kelaasor.com/swagger/docs/#/panel
  */
+
+async function runMock<T>(fn: () => T): Promise<T> {
+  await delay(140);
+  return fn();
+}
+
+function localSession(input?: LoginInput): SessionUser {
+  const email = input?.email.trim() || "staff@mock";
+  return {
+    id: 1,
+    email,
+    name: email.split("@")[0] || "مدیر ماک",
+    role: "staff",
+  };
+}
+
+const useMock = isMockMode();
+
 export const adminApi = {
   auth: {
-    login: (input: LoginInput) => authApi.login(input),
-    me: () => authApi.me(),
-    logout: () => authApi.logout(),
+    login: async (input: LoginInput): Promise<SessionUser> => {
+      if (useMock) return runMock(() => localSession(input));
+      return authApi.login(input);
+    },
+    me: async (): Promise<SessionUser> => {
+      if (useMock) return runMock(() => localSession());
+      return authApi.me();
+    },
+    logout: async (): Promise<void> => {
+      if (useMock) return runMock(() => undefined);
+      return authApi.logout();
+    },
   },
   dashboard: {
-    stats: () => dashboardApi.stats(),
+    stats: () =>
+      useMock ? runMock(() => mockStore.dashboard()) : dashboardApi.stats(),
   },
   enrollments: {
-    list: (params?: ListParams) => enrollmentsApi.list(params),
-    get: (id: number) => enrollmentsApi.get(id),
+    list: (params?: ListParams) =>
+      useMock
+        ? runMock(() => mockStore.listEnrollments(params))
+        : enrollmentsApi.list(params),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const item = mockStore.getEnrollment(id);
+            if (!item) throw new Error("ثبت‌نام پیدا نشد.");
+            return item;
+          })
+        : enrollmentsApi.get(id),
     updateStatus: (id: number, status: EnrollmentStatus, notes?: string) =>
-      enrollmentsApi.updateStatus(id, status, notes),
+      useMock
+        ? runMock(() => mockStore.updateEnrollmentStatus(id, status, notes))
+        : enrollmentsApi.updateStatus(id, status, notes),
   },
   payments: {
-    list: (params?: ListParams) => paymentsApi.list(params),
-    get: (id: number) => paymentsApi.get(id),
-    verify: (id: number, approved: boolean) => paymentsApi.verify(id, approved),
+    list: (params?: ListParams) =>
+      useMock
+        ? runMock(() => mockStore.listPayments(params))
+        : paymentsApi.list(params),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const item = mockStore.getPayment(id);
+            if (!item) throw new Error("پرداخت پیدا نشد.");
+            return item;
+          })
+        : paymentsApi.get(id),
+    verify: (id: number, approved: boolean) =>
+      useMock
+        ? runMock(() => mockStore.verifyPayment(id, approved))
+        : paymentsApi.verify(id, approved),
     markInstallmentPaid: (paymentId: number, installmentId: number) =>
-      paymentsApi.markInstallmentPaid(paymentId, installmentId),
+      useMock
+        ? runMock(() => mockStore.markInstallmentPaid(paymentId, installmentId))
+        : paymentsApi.markInstallmentPaid(paymentId, installmentId),
     rejectInstallment: (paymentId: number, installmentId: number) =>
-      paymentsApi.rejectInstallment(paymentId, installmentId),
+      useMock
+        ? runMock(() => mockStore.rejectInstallmentReceipt(paymentId, installmentId))
+        : paymentsApi.rejectInstallment(paymentId, installmentId),
+    applyCoupon: (paymentId: number, amount: number) =>
+      useMock
+        ? runMock(() => mockStore.applyCoupon(paymentId, amount))
+        : paymentsApi.applyCoupon(paymentId, amount),
   },
   certificates: {
-    list: (params?: ListParams) => certificatesApi.list(params),
-    get: (id: number) => certificatesApi.get(id),
-    issue: (enrollmentId: number) => certificatesApi.issue(enrollmentId),
-    revoke: (id: number) => certificatesApi.revoke(id),
+    list: (params?: ListParams) =>
+      useMock
+        ? runMock(() => mockStore.listCertificates(params))
+        : certificatesApi.list(params),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const item = mockStore.getCertificate(id);
+            if (!item) throw new Error("گواهی پیدا نشد.");
+            return item;
+          })
+        : certificatesApi.get(id),
+    issue: (enrollmentId: number) =>
+      useMock
+        ? runMock(() => mockStore.issueCertificate(enrollmentId))
+        : certificatesApi.issue(enrollmentId),
+    revoke: (id: number) =>
+      useMock
+        ? runMock(() => mockStore.revokeCertificate(id))
+        : certificatesApi.revoke(id),
   },
   settings: {
-    get: () => settingsApi.get(),
+    get: () =>
+      useMock ? runMock(() => mockStore.getSettings()) : settingsApi.get(),
     update: (patch: Partial<import("@/lib/api/types").AppSettings>) =>
-      settingsApi.update(patch),
+      useMock
+        ? runMock(() => mockStore.updateSettings(patch))
+        : settingsApi.update(patch),
   },
   pages: {
-    list: () => pagesApi.list(),
-    get: (key: string) => pagesApi.get(key),
+    list: () =>
+      useMock ? runMock(() => mockExtras.listPages()) : pagesApi.list(),
+    get: (key: string) =>
+      useMock ? runMock(() => mockExtras.getPage(key)) : pagesApi.get(key),
     update: (
       key: string,
       input: { title?: string; content?: string; data?: Record<string, unknown> },
-    ) => pagesApi.update(key, input),
+    ) =>
+      useMock
+        ? runMock(() => mockExtras.updatePage(key, input))
+        : pagesApi.update(key, input),
   },
   tasks: {
-    list: () => tasksApi.list(),
-    get: (id: number) => tasksApi.get(id),
+    list: () =>
+      useMock ? runMock(() => mockExtras.listTasks()) : tasksApi.list(),
+    get: (id: number) =>
+      useMock ? runMock(() => mockExtras.getTask(id)) : tasksApi.get(id),
     create: (input: import("@/lib/api/tasks.api").AdminTaskInput) =>
-      tasksApi.create(input),
-    update: (id: number, input: Partial<import("@/lib/api/tasks.api").AdminTaskInput>) =>
-      tasksApi.update(id, input),
-    remove: (id: number) => tasksApi.remove(id),
+      useMock
+        ? runMock(() => mockExtras.createTask(input))
+        : tasksApi.create(input),
+    update: (
+      id: number,
+      input: Partial<import("@/lib/api/tasks.api").AdminTaskInput>,
+    ) =>
+      useMock
+        ? runMock(() => mockExtras.updateTask(id, input))
+        : tasksApi.update(id, input),
+    remove: (id: number) =>
+      useMock ? runMock(() => mockExtras.removeTask(id)) : tasksApi.remove(id),
   },
   bootcamps: {
-    list: (params?: ListParams) => bootcampsApi.list(params),
-    get: (id: number) => bootcampsApi.get(id),
-    create: (input: BootcampInput) => bootcampsApi.create(input),
+    list: (params?: ListParams) =>
+      useMock
+        ? runMock(() => mockStore.listBootcamps(params))
+        : bootcampsApi.list(params),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const item = mockStore.getBootcamp(id);
+            if (!item) throw new Error("بوت‌کمپ پیدا نشد.");
+            return item;
+          })
+        : bootcampsApi.get(id),
+    create: (input: BootcampInput) =>
+      useMock
+        ? runMock(() => mockStore.createBootcamp(input))
+        : bootcampsApi.create(input),
     update: (id: number, input: Partial<BootcampInput> & Partial<Bootcamp>) =>
-      bootcampsApi.update(id, input),
-    remove: (id: number) => bootcampsApi.remove(id),
+      useMock
+        ? runMock(() => mockStore.updateBootcamp(id, input))
+        : bootcampsApi.update(id, input),
+    remove: (id: number) =>
+      useMock
+        ? runMock(() => {
+            mockStore.deleteBootcamp(id);
+          })
+        : bootcampsApi.remove(id),
     setChapters: (id: number, chapters: Bootcamp["chapters"]) =>
-      bootcampsApi.setChapters(id, chapters),
+      useMock
+        ? runMock(() => mockStore.setBootcampChapters(id, chapters))
+        : bootcampsApi.setChapters(id, chapters),
     setMedias: (id: number, medias: Bootcamp["medias"]) =>
-      bootcampsApi.setMedias(id, medias),
+      useMock
+        ? runMock(() => mockStore.setBootcampMedias(id, medias))
+        : bootcampsApi.setMedias(id, medias),
   },
   users: {
-    list: async (params?: ListParams) => customersApi.list(params),
+    list: async (params?: ListParams) =>
+      useMock
+        ? runMock(() => mockStore.listUsers(params))
+        : customersApi.list(params),
     get: async (id: number) => {
+      if (useMock) {
+        return runMock(() => {
+          const user = mockStore.getUser(id);
+          if (!user) throw new Error("کاربر پیدا نشد.");
+          return user;
+        });
+      }
       const detail = await customersApi.get(id);
       return detail.user;
     },
-    update: (id: number, patch: UserUpdateInput) => customersApi.update(id, patch),
+    update: (id: number, patch: UserUpdateInput) =>
+      useMock
+        ? runMock(() => mockStore.updateUser(id, patch))
+        : customersApi.update(id, patch),
   },
   customers: {
-    list: (params?: ListParams) => customersApi.list(params),
-    get: (id: number) => customersApi.get(id),
-    addNote: (userId: number, body: string) => customersApi.addNote(userId, body),
+    list: (params?: ListParams) =>
+      useMock
+        ? runMock(() => mockStore.listCustomers(params))
+        : customersApi.list(params),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const detail = mockStore.getCustomerDetail(id);
+            if (!detail) throw new Error("مشتری پیدا نشد.");
+            return detail;
+          })
+        : customersApi.get(id),
+    addNote: (userId: number, body: string) =>
+      useMock
+        ? runMock(() => mockStore.addCustomerNote(userId, body))
+        : customersApi.addNote(userId, body),
     deleteNote: (userId: number, noteId: number) =>
-      customersApi.deleteNote(userId, noteId),
+      useMock
+        ? runMock(() => {
+            mockStore.deleteCustomerNote(noteId);
+          })
+        : customersApi.deleteNote(userId, noteId),
     addCall: (input: {
       userId: number;
       enrollmentId?: number | null;
@@ -117,49 +273,135 @@ export const adminApi = {
       durationMinutes?: number | null;
       outcome: CallOutcome;
       summary: string;
-    }) => customersApi.addCall(input),
-    toggleStar: (userId: number) => customersApi.toggleStar(userId),
+    }) =>
+      useMock
+        ? runMock(() => mockStore.addCustomerCall(input))
+        : customersApi.addCall(input),
+    toggleStar: (userId: number) =>
+      useMock
+        ? runMock(() => mockStore.toggleCustomerStar(userId))
+        : customersApi.toggleStar(userId),
     setFollowUp: (userId: number, followUpAt: string | null) =>
-      customersApi.setFollowUp(userId, followUpAt),
+      useMock
+        ? runMock(() => mockStore.setCustomerFollowUp(userId, followUpAt))
+        : customersApi.setFollowUp(userId, followUpAt),
     setTags: (userId: number, crmTags: string[]) =>
-      customersApi.setTags(userId, crmTags),
+      useMock
+        ? runMock(() => mockStore.setCustomerTags(userId, crmTags))
+        : customersApi.setTags(userId, crmTags),
   },
   instructors: {
-    list: (params?: ListParams) => instructorsApi.list(params),
-    get: (id: number) => instructorsApi.get(id),
-    create: (input: InstructorInput) => instructorsApi.create(input),
+    list: (params?: ListParams) =>
+      useMock
+        ? runMock(() => mockStore.listInstructors(params))
+        : instructorsApi.list(params),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const item = mockStore.getInstructor(id);
+            if (!item) throw new Error("مدرس پیدا نشد.");
+            return item;
+          })
+        : instructorsApi.get(id),
+    create: (input: InstructorInput) =>
+      useMock
+        ? runMock(() => mockStore.createInstructor(input))
+        : instructorsApi.create(input),
     update: (id: number, input: InstructorInput) =>
-      instructorsApi.update(id, input),
-    remove: (id: number) => instructorsApi.remove(id),
+      useMock
+        ? runMock(() => mockStore.updateInstructor(id, input))
+        : instructorsApi.update(id, input),
+    remove: (id: number) =>
+      useMock
+        ? runMock(() => {
+            mockStore.deleteInstructor(id);
+          })
+        : instructorsApi.remove(id),
   },
   blog: {
-    list: (params?: ListParams) => blogApi.list(params),
-    get: (id: number) => blogApi.get(id),
-    create: (input: BlogPostInput) => blogApi.create(input),
-    update: (id: number, input: Partial<BlogPostInput>) => blogApi.update(id, input),
-    remove: (id: number) => blogApi.remove(id),
-    categories: () => blogApi.categories(),
+    list: (params?: ListParams) =>
+      useMock ? runMock(() => mockStore.listBlog(params)) : blogApi.list(params),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const item = mockStore.getBlog(id);
+            if (!item) throw new Error("پست پیدا نشد.");
+            return item;
+          })
+        : blogApi.get(id),
+    create: (input: BlogPostInput) =>
+      useMock
+        ? runMock(() => mockStore.createBlog(input))
+        : blogApi.create(input),
+    update: (id: number, input: Partial<BlogPostInput>) =>
+      useMock
+        ? runMock(() => mockStore.updateBlog(id, input))
+        : blogApi.update(id, input),
+    remove: (id: number) =>
+      useMock
+        ? runMock(() => {
+            mockStore.deleteBlog(id);
+          })
+        : blogApi.remove(id),
+    categories: () =>
+      useMock ? runMock(() => mockStore.blogCategories()) : blogApi.categories(),
     moderateComment: (postId: number, commentId: number, approved: boolean) =>
-      blogApi.moderateComment(postId, commentId, approved),
+      useMock
+        ? runMock(() => mockStore.moderateComment(postId, commentId, approved))
+        : blogApi.moderateComment(postId, commentId, approved),
   },
   topics: {
-    list: () => topicsApi.list(),
-    create: (input: TopicInput) => topicsApi.create(input),
-    update: (id: number, input: TopicInput) => topicsApi.update(id, input),
-    remove: (id: number) => topicsApi.remove(id),
+    list: () =>
+      useMock ? runMock(() => mockStore.listTopics()) : topicsApi.list(),
+    create: (input: TopicInput) =>
+      useMock
+        ? runMock(() => mockStore.createTopic(input))
+        : topicsApi.create(input),
+    update: (id: number, input: TopicInput) =>
+      useMock
+        ? runMock(() => mockStore.updateTopic(id, input))
+        : topicsApi.update(id, input),
+    remove: (id: number) =>
+      useMock
+        ? runMock(() => {
+            mockStore.deleteTopic(id);
+          })
+        : topicsApi.remove(id),
   },
   sponsors: {
-    list: () => sponsorsApi.list(),
-    create: (input: SponsorInput) => sponsorsApi.create(input),
-    update: (id: number, input: SponsorInput) => sponsorsApi.update(id, input),
-    remove: (id: number) => sponsorsApi.remove(id),
+    list: () =>
+      useMock ? runMock(() => mockStore.listSponsors()) : sponsorsApi.list(),
+    create: (input: SponsorInput) =>
+      useMock
+        ? runMock(() => mockStore.createSponsor(input))
+        : sponsorsApi.create(input),
+    update: (id: number, input: SponsorInput) =>
+      useMock
+        ? runMock(() => mockStore.updateSponsor(id, input))
+        : sponsorsApi.update(id, input),
+    remove: (id: number) =>
+      useMock
+        ? runMock(() => {
+            mockStore.deleteSponsor(id);
+          })
+        : sponsorsApi.remove(id),
   },
   partners: {
-    list: () => partnersApi.list(),
+    list: () =>
+      useMock ? runMock(() => mockStore.listPartners()) : partnersApi.list(),
     create: (input: import("@/lib/api/types").PartnerCompanyInput) =>
-      partnersApi.create(input),
+      useMock
+        ? runMock(() => mockStore.createPartner(input))
+        : partnersApi.create(input),
     update: (id: number, input: import("@/lib/api/types").PartnerCompanyInput) =>
-      partnersApi.update(id, input),
-    remove: (id: number) => partnersApi.remove(id),
+      useMock
+        ? runMock(() => mockStore.updatePartner(id, input))
+        : partnersApi.update(id, input),
+    remove: (id: number) =>
+      useMock
+        ? runMock(() => {
+            mockStore.deletePartner(id);
+          })
+        : partnersApi.remove(id),
   },
 };

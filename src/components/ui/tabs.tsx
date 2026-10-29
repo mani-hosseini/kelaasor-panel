@@ -5,7 +5,18 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+function Tabs({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  return (
+    <TabsPrimitive.Root
+      dir="rtl"
+      className={cn("text-right", className)}
+      {...props}
+    />
+  );
+}
 
 function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
   return (
@@ -38,7 +49,11 @@ function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPr
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("mt-4 outline-none focus-visible:ring-2 focus-visible:ring-ring/40", className)}
+      dir="rtl"
+      className={cn(
+        "mt-4 text-right outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        className,
+      )}
       {...props}
     />
   );

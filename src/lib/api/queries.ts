@@ -125,6 +125,19 @@ export function useRejectInstallment() {
   });
 }
 
+export function useApplyPaymentCoupon() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { paymentId: number; amount: number }) =>
+      adminApi.payments.applyCoupon(input.paymentId, input.amount),
+    onSuccess: async (_data, variables) => {
+      await client.invalidateQueries({ queryKey: queryKeys.payment(variables.paymentId) });
+      await client.invalidateQueries({ queryKey: ["payments"] });
+      await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
 export function useCertificates(params?: ListParams) {
   return useQuery({
     queryKey: queryKeys.certificates(params),
@@ -146,6 +159,8 @@ export function useIssueCertificate() {
     mutationFn: (enrollmentId: number) => adminApi.certificates.issue(enrollmentId),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ["certificates"] });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: ["customer"] });
       await client.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
@@ -157,6 +172,8 @@ export function useRevokeCertificate() {
     mutationFn: (id: number) => adminApi.certificates.revoke(id),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ["certificates"] });
+      await client.invalidateQueries({ queryKey: ["customers"] });
+      await client.invalidateQueries({ queryKey: ["customer"] });
       await client.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });

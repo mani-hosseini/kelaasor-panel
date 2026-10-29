@@ -35,7 +35,7 @@ export function MediaEditor({
   const save = useSetBootcampMedias();
 
   return (
-    <div className="space-y-4">
+    <div dir="rtl" className="space-y-4 text-right">
       <p className="text-sm text-muted-foreground">
         تصویر معرفی، ویدیو و فایل‌های دوره در بخش Moments صفحه بوت‌کمپ استفاده می‌شوند.
       </p>

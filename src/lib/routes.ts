@@ -3,8 +3,14 @@ export const routes = {
   root: "/",
   enrollments: "/enrollments",
   enrollment: (id: number | string) => `/enrollments/${id}`,
+  enrollmentsByBootcamp: (bootcampId: number | string) =>
+    `/enrollments/bootcamp/${bootcampId}`,
   payments: "/payments",
+  paymentsByBootcamp: (bootcampId: number | string) =>
+    `/payments/bootcamp/${bootcampId}`,
   payment: (id: number | string) => `/payments/${id}`,
+  finance: "/finance",
+  tasks: "/tasks",
   bootcamps: "/bootcamps",
   bootcampNew: "/bootcamps/new",
   bootcamp: (id: number | string) => `/bootcamps/${id}`,

@@ -22,7 +22,7 @@ export default function TopicsPage() {
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { title: "" } });
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader eyebrow="بوت‌کمپ‌ها" title="موضوع‌های بوت‌کمپ" description="دسته‌بندی‌هایی که سایت عمومی کلاسور با آن‌ها فیلتر می‌شود. موارد قبلی را ببینید و مورد جدید اضافه کنید." />
       <form
         className="surface-panel flex flex-col gap-3 p-5 sm:flex-row"

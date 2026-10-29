@@ -32,14 +32,15 @@ function DialogContent({
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
+        dir="rtl"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-border bg-card p-6 shadow-xl duration-200",
+          "fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-border bg-card p-6 text-right shadow-xl duration-200",
           className,
         )}
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-4 left-4 rounded-lg p-1 text-muted-foreground hover:bg-muted">
+        <DialogPrimitive.Close className="absolute top-4 end-4 rounded-lg p-1 text-muted-foreground hover:bg-muted">
           <X className="size-4" />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

@@ -3,18 +3,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Award,
   BookOpen,
   ClipboardList,
   CreditCard,
   FileText,
   Globe2,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   Settings,
   Sparkles,
   UserRound,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -33,8 +34,19 @@ const groups = [
       { href: routes.root, label: "پیشخوان", description: "نمای کلی کسب‌وکار", icon: LayoutDashboard },
       { href: routes.customers, label: "مشتریان", description: "یادداشت، تماس و مراحل", icon: Users },
       { href: routes.enrollments, label: "ثبت‌نام‌ها", description: "صف تأیید", icon: ClipboardList },
+      {
+        href: routes.tasks,
+        label: "تسک‌ها",
+        description: "تماس ناقص و کارهای باز",
+        icon: ListTodo,
+      },
       { href: routes.payments, label: "پرداخت‌ها", description: "فیش، چک و اقساط", icon: CreditCard },
-      { href: routes.certificates, label: "گواهی‌ها", description: "صدور و ابطال", icon: Award },
+      {
+        href: routes.finance,
+        label: "مالی",
+        description: "درآمد، هزینه و فصل‌ها",
+        icon: Wallet,
+      },
     ],
   },
   {
@@ -78,9 +90,10 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
   return (
     <aside
       className={cn(
-        "relative flex h-full flex-col overflow-hidden border-l border-sidebar-border bg-sidebar text-sidebar-foreground",
+        "relative flex h-full flex-col overflow-hidden border-e border-sidebar-border bg-sidebar text-right text-sidebar-foreground",
         className,
       )}
+      dir="rtl"
     >
       <div className="px-3.5 pt-4 pb-3">
         <div className="flex items-center gap-2.5">

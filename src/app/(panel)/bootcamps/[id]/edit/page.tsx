@@ -19,7 +19,7 @@ export default function EditBootcampPage() {
   if (isLoading || !data) return <Skeleton className="h-96" />;
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader backHref={routes.bootcamp(id)} eyebrow="بوت‌کمپ" title={`ویرایش ${data.title}`} />
       <div className="surface-panel p-5">
         <BootcampForm

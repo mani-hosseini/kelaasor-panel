@@ -58,17 +58,17 @@ export function DataTable<TData>({
   const setSearch = controlled ? onSearchChange : setGlobalFilter;
 
   return (
-    <div className="space-y-4">
+    <div dir="rtl" className="space-y-4 text-right">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
           value={search}
           onChange={(event) => setSearch?.(event.target.value)}
           placeholder={searchPlaceholder}
-          className="max-w-sm text-right"
+          className="max-w-sm"
         />
         {toolbar}
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-border" dir="rtl">
+      <div className="overflow-x-auto rounded-2xl border border-border">
         <table className="w-full min-w-[52rem] text-right text-sm">
           <thead className="bg-muted/70 text-muted-foreground">
             {table.getHeaderGroups().map((group) => (

@@ -41,7 +41,8 @@ export function CustomerProfileForm({ user }: { user: AdminUser }) {
 
   return (
     <form
-      className="space-y-4"
+      dir="rtl"
+      className="space-y-4 text-right"
       onSubmit={form.handleSubmit((values) =>
         update.mutate(
           {

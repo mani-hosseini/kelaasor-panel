@@ -1,18 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, TicketPercent } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { payableAmount } from "@/lib/api/couponStore";
 import { useAdminLookups } from "@/lib/api/lookups";
 import {
+  useApplyPaymentCoupon,
   useMarkInstallmentPaid,
   usePayment,
   useRejectInstallment,
@@ -29,13 +34,23 @@ export default function PaymentDetailPage() {
   const verify = useVerifyPayment();
   const markPaid = useMarkInstallmentPaid();
   const rejectInstallment = useRejectInstallment();
+  const applyCoupon = useApplyPaymentCoupon();
+  const [couponInput, setCouponInput] = useState("");
+
+  useEffect(() => {
+    if (!data) return;
+    setCouponInput(data.couponDiscount ? String(data.couponDiscount) : "");
+  }, [data]);
 
   if (isLoading || !data) return <Skeleton className="h-96" />;
+
+  const discount = data.couponDiscount ?? 0;
+  const payable = payableAmount(data);
 
   return (
     <div dir="rtl" className="space-y-6 text-right">
       <PageHeader
-        backHref={routes.payments}
+        backHref={routes.paymentsByBootcamp(data.bootcampId)}
         eyebrow="پرداخت"
         title={userName(data.userId)}
         description={bootcampTitle(data.bootcampId)}
@@ -55,10 +70,17 @@ export default function PaymentDetailPage() {
             <CardTitle>خلاصه مالی و مدارک</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 text-sm sm:grid-cols-3">
+            <div className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
               <Stat label="مبلغ کل" value={formatToman(data.totalAmount)} />
+              <Stat label="تخفیف کپن" value={formatToman(discount)} />
+              <Stat label="قابل پرداخت" value={formatToman(payable)} />
               <Stat label="وصول‌شده" value={formatToman(data.paidAmount)} />
-              <Stat label="نوع" value={data.paymentType === 2 ? "اقساطی" : "نقدی"} />
+            </div>
+            <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              نوع پرداخت: {data.paymentType === 2 ? "اقساطی" : "نقدی"}
+              {discount > 0
+                ? ` — بعد از کپن ${formatToman(discount)} از مبلغ کل کم شده است.`
+                : null}
             </div>
             <Progress value={data.paidPercentage} />
             <div className="grid gap-3 sm:grid-cols-2">
@@ -67,41 +89,118 @@ export default function PaymentDetailPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>تأیید ادمین</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              با تأیید، ثبت‌نام به وضعیت نهایی می‌رود و گواهی به‌صورت خودکار صادر می‌شود.
-            </p>
-            <Button
-              className="w-full"
-              disabled={verify.isPending || data.verified}
-              onClick={() =>
-                verify.mutate(
-                  { id, approved: true },
-                  { onSuccess: () => toast.success("پرداخت تأیید و گواهی صادر شد") },
-                )
-              }
-            >
-              تأیید فیش و ثبت‌نام
-            </Button>
-            <Button
-              variant="destructive"
-              className="w-full"
-              disabled={verify.isPending}
-              onClick={() =>
-                verify.mutate(
-                  { id, approved: false },
-                  { onSuccess: () => toast.message("فیش رد شد؛ کاربر باید دوباره آپلود کند") },
-                )
-              }
-            >
-              رد فیش و پاک‌سازی رسید
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TicketPercent className="size-4 text-brand" />
+                کپن تخفیف
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                مبلغ تخفیف را به تومان وارد کنید تا از مبلغ کل کم شود. مثلاً ۱٬۰۰۰٬۰۰۰.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="coupon-amount">مبلغ کپن (تومان)</Label>
+                <Input
+                  id="coupon-amount"
+                  dir="ltr"
+                  inputMode="numeric"
+                  className="text-left"
+                  placeholder="1000000"
+                  value={couponInput}
+                  onChange={(event) =>
+                    setCouponInput(event.target.value.replace(/[^\d]/g, ""))
+                  }
+                />
+              </div>
+              <div className="rounded-xl bg-brand/5 px-3 py-2 text-sm">
+                <p className="text-xs text-muted-foreground">مبلغ قابل پرداخت بعد از کپن</p>
+                <p className="mt-1 font-bold">
+                  {formatToman(
+                    Math.max(0, data.totalAmount - (Number(couponInput) || 0)),
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  disabled={applyCoupon.isPending}
+                  onClick={() => {
+                    const amount = Number(couponInput) || 0;
+                    if (amount > data.totalAmount) {
+                      toast.error("مبلغ کپن نمی‌تواند از مبلغ کل بیشتر باشد");
+                      return;
+                    }
+                    applyCoupon.mutate(
+                      { paymentId: id, amount },
+                      {
+                        onSuccess: () =>
+                          toast.success(
+                            amount > 0
+                              ? `کپن ${formatToman(amount)} اعمال شد`
+                              : "کپن حذف شد",
+                          ),
+                        onError: (error) => toast.error(error.message),
+                      },
+                    );
+                  }}
+                >
+                  اعمال کپن
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={applyCoupon.isPending || discount <= 0}
+                  onClick={() => {
+                    setCouponInput("");
+                    applyCoupon.mutate(
+                      { paymentId: id, amount: 0 },
+                      { onSuccess: () => toast.message("کپن حذف شد") },
+                    );
+                  }}
+                >
+                  حذف
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>تأیید ادمین</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                با تأیید، ثبت‌نام به وضعیت نهایی می‌رود و گواهی به‌صورت خودکار صادر می‌شود.
+              </p>
+              <Button
+                className="w-full"
+                disabled={verify.isPending || data.verified}
+                onClick={() =>
+                  verify.mutate(
+                    { id, approved: true },
+                    { onSuccess: () => toast.success("پرداخت تأیید و گواهی صادر شد") },
+                  )
+                }
+              >
+                تأیید فیش و ثبت‌نام
+              </Button>
+              <Button
+                variant="destructive"
+                className="w-full"
+                disabled={verify.isPending}
+                onClick={() =>
+                  verify.mutate(
+                    { id, approved: false },
+                    { onSuccess: () => toast.message("فیش رد شد؛ کاربر باید دوباره آپلود کند") },
+                  )
+                }
+              >
+                رد فیش و پاک‌سازی رسید
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {data.installments.length > 0 ? (

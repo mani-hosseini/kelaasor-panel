@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { Copy, Phone, Star, StickyNote, Trash2 } from "lucide-react";
+import { Award, Copy, Phone, Star, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityTimeline } from "@/components/customers/ActivityTimeline";
@@ -32,8 +32,10 @@ import { useAdminLookups } from "@/lib/api/lookups";
 import {
   useAddCustomerCall,
   useAddCustomerNote,
+  useCertificates,
   useCustomer,
   useDeleteCustomerNote,
+  useRevokeCertificate,
   useSetCustomerFollowUp,
   useSetCustomerTags,
   useToggleCustomerStar,
@@ -54,6 +56,8 @@ export default function CustomerDetailPage() {
   const id = Number(params.id);
   const { data, isLoading } = useCustomer(id);
   const { bootcampTitle } = useAdminLookups();
+  const certificatesQuery = useCertificates();
+  const revokeCertificate = useRevokeCertificate();
   const updateUser = useUpdateUser();
   const addNote = useAddCustomerNote();
   const deleteNote = useDeleteCustomerNote();
@@ -83,6 +87,9 @@ export default function CustomerDetailPage() {
   }
 
   const { user, enrollments, notes, calls, activity } = data;
+  const customerCertificates = (certificatesQuery.data ?? []).filter(
+    (item) => item.userId === id,
+  );
   const activeEnrollment =
     enrollments.find(
       (item) =>
@@ -257,6 +264,9 @@ export default function CustomerDetailPage() {
           <TabsTrigger value="stages">مراحل ثبت‌نام</TabsTrigger>
           <TabsTrigger value="notes">یادداشت‌ها ({toFa(notes.length)})</TabsTrigger>
           <TabsTrigger value="calls">تماس‌ها ({toFa(calls.length)})</TabsTrigger>
+          <TabsTrigger value="certificates">
+            گواهی‌ها ({toFa(customerCertificates.length)})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -651,6 +661,67 @@ export default function CustomerDetailPage() {
               <p className="text-sm text-muted-foreground">هنوز تماسی ثبت نشده.</p>
             ) : null}
           </div>
+        </TabsContent>
+
+        <TabsContent value="certificates" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="size-4 text-brand" />
+                گواهی‌های این مشتری
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                گواهی‌هایی که از تب «صدور گواهینامه» بوت‌کمپ برای این نفر صادر شده‌اند.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {certificatesQuery.isLoading ? (
+                <Skeleton className="h-24" />
+              ) : customerCertificates.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+                  هنوز گواهی برای این مشتری ثبت نشده.
+                </p>
+              ) : (
+                customerCertificates.map((cert) => (
+                  <div
+                    key={cert.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border px-3.5 py-3"
+                  >
+                    <div className="min-w-0 text-right">
+                      <p className="font-semibold">{cert.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {bootcampTitle(cert.bootcampId)} · صدور{" "}
+                        {formatJalaliDate(cert.issuedAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={cert.revoked ? "danger" : "success"}>
+                        {cert.revoked ? "باطل‌شده" : "فعال"}
+                      </Badge>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={routes.bootcamp(cert.bootcampId)}>بوت‌کمپ</Link>
+                      </Button>
+                      {!cert.revoked ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={revokeCertificate.isPending}
+                          onClick={() =>
+                            revokeCertificate.mutate(cert.id, {
+                              onSuccess: () => toast.success("گواهی باطل شد"),
+                              onError: (error) => toast.error(error.message),
+                            })
+                          }
+                        >
+                          ابطال
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

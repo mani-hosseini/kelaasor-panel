@@ -27,6 +27,7 @@ import {
   useSponsors,
   useTopics,
 } from "@/lib/api/queries";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   title: z.string().min(3, "عنوان را وارد کنید."),
@@ -128,7 +129,8 @@ export function BootcampForm({
 
   return (
     <form
-      className="space-y-5"
+      dir="rtl"
+      className="space-y-5 text-right"
       onSubmit={form.handleSubmit((values) =>
         onSubmit({
           ...values,
@@ -447,7 +449,7 @@ function Field({
   className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={cn("text-right", className)}>
       <Label className="mb-2 block">{label}</Label>
       {children}
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}

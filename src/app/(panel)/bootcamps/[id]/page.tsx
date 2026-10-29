@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { BootcampCertificateIssuer } from "@/components/bootcamps/BootcampCertificateIssuer";
 import { BootcampForm } from "@/components/bootcamps/BootcampForm";
 import { MediaEditor } from "@/components/bootcamps/MediaEditor";
 import { SyllabusEditor } from "@/components/bootcamps/SyllabusEditor";
@@ -43,7 +44,7 @@ export default function BootcampDetailPage() {
   const sponsors = allSponsors.filter((item) => data.sponsorIds.includes(item.id));
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader
         backHref={routes.bootcamps}
         eyebrow={topic?.title}
@@ -78,6 +79,7 @@ export default function BootcampDetailPage() {
           <TabsTrigger value="people">مدرس و حامی</TabsTrigger>
           <TabsTrigger value="media">رسانه</TabsTrigger>
           <TabsTrigger value="cohort">وضعیت ثبت‌نام</TabsTrigger>
+          <TabsTrigger value="certificates">صدور گواهینامه</TabsTrigger>
           <TabsTrigger value="edit">ویرایش</TabsTrigger>
         </TabsList>
 
@@ -171,6 +173,10 @@ export default function BootcampDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="certificates">
+          <BootcampCertificateIssuer bootcampId={id} />
         </TabsContent>
 
         <TabsContent value="edit">

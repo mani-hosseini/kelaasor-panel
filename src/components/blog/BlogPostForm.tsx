@@ -67,7 +67,8 @@ export function BlogPostForm({
 
   return (
     <form
-      className={cn("space-y-4", className)}
+      dir="rtl"
+      className={cn("space-y-4 text-right", className)}
       onSubmit={form.handleSubmit((values) => onSubmit(values))}
     >
       <div className="grid gap-4 sm:grid-cols-2">

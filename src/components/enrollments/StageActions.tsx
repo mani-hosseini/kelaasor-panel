@@ -51,13 +51,13 @@ export function StageActions({
   }
 
   return (
-    <div className="space-y-3">
+    <div dir="rtl" className="space-y-3 text-right">
       <div className={columns === 2 ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
         {STAGE_ACTIONS.map((action) => (
           <Button
             key={action.status}
             variant={action.destructive ? "destructive" : "outline"}
-            className="w-full justify-start"
+            className="w-full justify-start text-right"
             disabled={updateStatus.isPending || currentStatus === action.status}
             onClick={() => {
               if (action.askNote) {

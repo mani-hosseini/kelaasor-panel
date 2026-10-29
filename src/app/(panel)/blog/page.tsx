@@ -79,7 +79,7 @@ export default function BlogPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader
         eyebrow="محتوا"
         title="بلاگ کلاسور"

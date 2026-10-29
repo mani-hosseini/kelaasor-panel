@@ -18,11 +18,14 @@ import { useBootcamps, useInstructor, useSaveInstructor } from "@/lib/api/querie
 import type { InstructorInput } from "@/lib/api/types";
 import { routes } from "@/lib/routes";
 
+const optionalUrl = z.union([z.string().url(), z.literal("")]);
+
 const schema = z.object({
   fullName: z.string().min(3),
   jobTitle: z.string().min(3),
   company: z.string().min(2),
   linkedinUrl: z.string().url(),
+  instagramUrl: optionalUrl,
   bio: z.string().min(8),
   avatar: z.string().nullable(),
   companyLogo: z.string().nullable(),
@@ -43,7 +46,7 @@ export default function InstructorDetailPage() {
   if (isLoading || !data) return <Skeleton className="h-96" />;
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader backHref={routes.instructors} eyebrow={data.company ?? "مدرس"} title={data.fullName} description={data.jobTitle} />
       <div className="grid gap-4 lg:grid-cols-2">
         <InstructorEditForm initial={{
@@ -51,6 +54,7 @@ export default function InstructorDetailPage() {
           jobTitle: data.jobTitle,
           company: data.company ?? "",
           linkedinUrl: data.linkedinUrl,
+          instagramUrl: data.instagramUrl || "",
           bio: data.bio,
           avatar: data.avatar,
           companyLogo: data.companyLogo,
@@ -113,6 +117,7 @@ function InstructorEditForm({
         onChange={(next) => form.setValue("companyLogo", next, { shouldDirty: true })}
       />
       <div className="space-y-1.5"><Label>لینکدین</Label><Input dir="ltr" {...form.register("linkedinUrl")} /></div>
+      <div className="space-y-1.5"><Label>اینستاگرام</Label><Input dir="ltr" {...form.register("instagramUrl")} /></div>
       <div className="space-y-1.5"><Label>بیو</Label><Textarea {...form.register("bio")} /></div>
       <Button type="submit" disabled={submitting}>ذخیره</Button>
     </form>

@@ -429,8 +429,8 @@ export const mockStore = {
         {
           id: "certificates",
           title: "گواهی‌های قابل صدور",
-          description: "ثبت‌نام‌های تأییدشده بدون گواهی",
-          href: routes.certificates,
+          description: "از تب صدور گواهینامه هر بوت‌کمپ",
+          href: routes.bootcamps,
           count: store.enrollments.filter(
             (item) =>
               item.status === ENROLLMENT_STATUS.CONFIRMED &&
@@ -525,6 +525,17 @@ export const mockStore = {
     return db().payments.find((item) => item.id === paymentId) ?? null;
   },
 
+  applyCoupon(paymentId: number, amount: number) {
+    const payment = this.getPayment(paymentId);
+    if (!payment) throw new Error("پرداخت پیدا نشد.");
+    payment.couponDiscount = Math.max(0, Math.round(amount));
+    const payable = Math.max(0, payment.totalAmount - payment.couponDiscount);
+    if (payment.paidAmount > payable) payment.paidAmount = payable;
+    payment.paidPercentage =
+      payable <= 0 ? 100 : Math.round((payment.paidAmount / payable) * 100);
+    return payment;
+  },
+
   verifyPayment(paymentId: number, approved: boolean) {
     const payment = this.getPayment(paymentId);
     if (!payment) throw new Error("پرداخت پیدا نشد.");
@@ -532,7 +543,7 @@ export const mockStore = {
     payment.paymentStatus = approved ? "پرداخت‌شده" : "رد شده";
     if (approved) {
       payment.paidPercentage = 100;
-      payment.paidAmount = payment.totalAmount;
+      payment.paidAmount = Math.max(0, payment.totalAmount - (payment.couponDiscount ?? 0));
       this.updateEnrollmentStatus(payment.enrollmentId, ENROLLMENT_STATUS.CONFIRMED);
     } else {
       payment.receipt = null;
@@ -562,7 +573,9 @@ export const mockStore = {
       .filter((row) => row.isPaid)
       .reduce((sum, row) => sum + row.amount, 0);
     payment.paidAmount = paid;
-    payment.paidPercentage = Math.round((paid / payment.totalAmount) * 100);
+    const payable = Math.max(0, payment.totalAmount - (payment.couponDiscount ?? 0));
+    payment.paidPercentage =
+      payable <= 0 ? 100 : Math.round((paid / payable) * 100);
     payment.paymentStatus =
       payment.paidPercentage >= 100 ? "پرداخت‌شده" : "اقساط در جریان";
     if (payment.paidPercentage >= 100) {
@@ -946,6 +959,7 @@ export const mockStore = {
       avatar: input.avatar || null,
       jobTitle: input.jobTitle,
       linkedinUrl: input.linkedinUrl,
+      instagramUrl: input.instagramUrl || "",
       company: input.company,
       companyLogo: input.companyLogo || null,
       bio: input.bio,

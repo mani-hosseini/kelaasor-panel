@@ -49,10 +49,10 @@ export function LoginForm() {
   });
 
   return (
-    <div className="login-atmosphere flex min-h-dvh items-center justify-center px-4 py-10">
+    <div dir="rtl" className="login-atmosphere flex min-h-dvh items-center justify-center px-4 py-10 text-right">
       <div className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card shadow-[0_30px_80px_-40px_rgba(8,37,33,0.45)]">
         <div className="h-1.5 brand-gradient" />
-        <div className="space-y-6 p-6 sm:p-8">
+        <div className="space-y-6 p-6 text-right sm:p-8">
           <div className="flex flex-col items-center text-center">
             <BrandLogo size={56} className="rounded-2xl shadow-lift" priority />
             <p className="mt-4 text-sm font-bold text-brand">کلاسور</p>
@@ -62,7 +62,7 @@ export function LoginForm() {
             </p>
           </div>
 
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} dir="rtl" className="space-y-4 text-right">
             <div className="space-y-2">
               <Label htmlFor="admin-email">ایمیل</Label>
               <Input
@@ -90,7 +90,7 @@ export function LoginForm() {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 left-2 inline-flex items-center text-muted-foreground"
+                  className="absolute inset-y-0 end-2 inline-flex items-center text-muted-foreground"
                   onClick={() => setShowPassword((value) => !value)}
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -101,7 +101,7 @@ export function LoginForm() {
               ) : null}
             </div>
             {formError ? (
-              <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">{formError}</p>
+              <p className="rounded-xl bg-danger-soft px-3 py-2 text-right text-sm text-danger">{formError}</p>
             ) : null}
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (

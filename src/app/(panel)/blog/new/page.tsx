@@ -15,7 +15,7 @@ export default function NewBlogPostPage() {
   const save = useSaveBlog();
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader
         backHref={routes.blog}
         eyebrow="محتوا"

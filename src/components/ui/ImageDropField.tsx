@@ -87,7 +87,7 @@ export function ImageDropField({
   const preview = isPreviewable(value) ? value : null;
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-2 text-right", className)}>
       {label ? <p className="text-sm font-medium">{label}</p> : null}
 
       <input

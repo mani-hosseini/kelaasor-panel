@@ -21,11 +21,14 @@ import { useDeleteInstructor, useInstructors, useSaveInstructor } from "@/lib/ap
 import type { Instructor, InstructorInput } from "@/lib/api/types";
 import { routes } from "@/lib/routes";
 
+const optionalUrl = z.union([z.string().url(), z.literal("")]);
+
 const schema = z.object({
   fullName: z.string().min(3),
   jobTitle: z.string().min(3),
   company: z.string().min(2),
   linkedinUrl: z.string().url(),
+  instagramUrl: optionalUrl,
   bio: z.string().min(8),
   avatar: z.string().nullable(),
   companyLogo: z.string().nullable(),
@@ -44,6 +47,7 @@ export default function InstructorsPage() {
       jobTitle: "",
       company: "",
       linkedinUrl: "https://linkedin.com/in/",
+      instagramUrl: "https://instagram.com/",
       bio: "",
       avatar: null,
       companyLogo: null,
@@ -86,7 +90,7 @@ export default function InstructorsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6 text-right">
       <PageHeader
         eyebrow="آموزش"
         title="مدرس‌ها و منتورها"
@@ -123,6 +127,7 @@ export default function InstructorsPage() {
             <Field label="عنوان شغلی"><Input {...form.register("jobTitle")} /></Field>
             <Field label="شرکت"><Input {...form.register("company")} /></Field>
             <Field label="لینکدین"><Input dir="ltr" {...form.register("linkedinUrl")} /></Field>
+            <Field label="اینستاگرام"><Input dir="ltr" {...form.register("instagramUrl")} /></Field>
             <ImageDropField
               label="آواتار"
               value={form.watch("avatar")}
@@ -144,7 +149,7 @@ export default function InstructorsPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 text-right">
       <Label>{label}</Label>
       {children}
     </div>

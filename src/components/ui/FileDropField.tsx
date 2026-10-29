@@ -59,8 +59,8 @@ export function FileDropField({
   }
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {label ? <p className="text-sm font-medium">{label}</p> : null}
+    <div className={cn("space-y-2 text-right", className)}>
+      {label ? <p className="text-right text-sm font-medium">{label}</p> : null}
       <input
         ref={inputRef}
         type="file"

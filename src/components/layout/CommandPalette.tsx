@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import {
-  Award,
   BookOpen,
   ClipboardList,
   CreditCard,
@@ -10,10 +9,12 @@ import {
   Globe2,
   Handshake,
   LayoutDashboard,
+  ListTodo,
   Settings,
   Tags,
   UserRound,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -30,8 +31,9 @@ const pages = [
   { href: routes.root, label: "پیشخوان", icon: LayoutDashboard },
   { href: routes.customers, label: "مشتریان", icon: Users },
   { href: routes.enrollments, label: "ثبت‌نام‌ها", icon: ClipboardList },
+  { href: routes.tasks, label: "تسک‌ها", icon: ListTodo },
   { href: routes.payments, label: "پرداخت‌ها", icon: CreditCard },
-  { href: routes.certificates, label: "گواهی‌ها", icon: Award },
+  { href: routes.finance, label: "مالی", icon: Wallet },
   { href: routes.bootcamps, label: "بوت‌کمپ‌ها", icon: BookOpen },
   { href: routes.topics, label: "موضوع‌های بوت‌کمپ", icon: Tags },
   { href: routes.sponsors, label: "حامی‌های بوت‌کمپ", icon: Handshake },
