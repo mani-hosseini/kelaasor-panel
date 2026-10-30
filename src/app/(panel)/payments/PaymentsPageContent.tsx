@@ -16,7 +16,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { payableAmount } from "@/lib/api/couponStore";
+import { payableAmount } from "@/lib/api/paymentMoney";
 import { useBootcamps, usePayments } from "@/lib/api/queries";
 import { EVENT_STATUS, type ListParams, type Payment } from "@/lib/api/types";
 import { formatToman, toFa } from "@/lib/format";

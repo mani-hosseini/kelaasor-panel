@@ -21,6 +21,8 @@ import {
   type DashboardStats,
   type Enrollment,
   type EnrollmentStatus,
+  type Expense,
+  type ExpenseInput,
   type Instructor,
   type InstructorInput,
   type ListParams,
@@ -33,6 +35,7 @@ import {
   type TopicInput,
   type UserUpdateInput,
 } from "@/lib/api/types";
+import { seedExpenses } from "@/lib/api/mock/expenses";
 import {
   appSettings as seedSettings,
   blogCategories as seedCategories,
@@ -62,6 +65,7 @@ type Store = {
   users: AdminUser[];
   enrollments: Enrollment[];
   payments: Payment[];
+  expenses: Expense[];
   certificates: Certificate[];
   settings: AppSettings;
   customerNotes: CustomerNote[];
@@ -85,6 +89,7 @@ function createStore(): Store {
     users: clone(seedUsers),
     enrollments: clone(seedEnrollments),
     payments: clone(seedPayments),
+    expenses: clone(seedExpenses),
     certificates: clone(seedCertificates),
     settings: clone(seedSettings),
     customerNotes: clone(seedNotes),
@@ -96,14 +101,14 @@ function createStore(): Store {
 }
 
 const globalStore = globalThis as typeof globalThis & {
-  __kelaasorAdminStoreV5?: Store;
+  __kelaasorAdminStoreV6?: Store;
 };
 
 function db() {
-  if (!globalStore.__kelaasorAdminStoreV5) {
-    globalStore.__kelaasorAdminStoreV5 = createStore();
+  if (!globalStore.__kelaasorAdminStoreV6) {
+    globalStore.__kelaasorAdminStoreV6 = createStore();
   }
-  return globalStore.__kelaasorAdminStoreV5;
+  return globalStore.__kelaasorAdminStoreV6;
 }
 
 function id() {
@@ -495,9 +500,18 @@ export const mockStore = {
     return item;
   },
 
-  listPayments(params: { search?: string; paymentFilter?: ListParams["paymentFilter"] } = {}) {
+  listPayments(
+    params: {
+      search?: string;
+      paymentFilter?: ListParams["paymentFilter"];
+      bootcampId?: number;
+    } = {},
+  ) {
     const store = db();
     return store.payments.filter((item) => {
+      if (params.bootcampId != null && item.bootcampId !== params.bootcampId) {
+        return false;
+      }
       const user = store.users.find((u) => u.id === item.userId);
       const bootcamp = store.bootcamps.find((b) => b.id === item.bootcampId);
       if (
@@ -528,12 +542,76 @@ export const mockStore = {
   applyCoupon(paymentId: number, amount: number) {
     const payment = this.getPayment(paymentId);
     if (!payment) throw new Error("پرداخت پیدا نشد.");
-    payment.couponDiscount = Math.max(0, Math.round(amount));
-    const payable = Math.max(0, payment.totalAmount - payment.couponDiscount);
-    if (payment.paidAmount > payable) payment.paidAmount = payable;
+
+    const unpaid = payment.installments.filter((row) => !row.isPaid);
+    if (unpaid.length === 0) {
+      throw new Error("همه قسط‌ها پرداخت شده‌اند؛ کپن قابل اعمال نیست.");
+    }
+
+    const coupon = Math.max(0, Math.round(amount));
+    const unpaidCap = Math.max(0, payment.totalAmount - payment.paidAmount);
+    if (coupon > unpaidCap) {
+      throw new Error("مبلغ کپن از مانده پرداخت‌نشده بیشتر است.");
+    }
+
+    payment.couponDiscount = coupon;
+    const payable = Math.max(0, payment.totalAmount - coupon);
+    const remaining = Math.max(0, payable - payment.paidAmount);
+    const n = unpaid.length;
+    const base = Math.floor(remaining / n);
+    let leftover = remaining - base * n;
+    for (const installment of unpaid) {
+      installment.amount = base + (leftover > 0 ? 1 : 0);
+      if (leftover > 0) leftover -= 1;
+    }
     payment.paidPercentage =
       payable <= 0 ? 100 : Math.round((payment.paidAmount / payable) * 100);
     return payment;
+  },
+
+  listExpenses() {
+    return [...db().expenses].sort((a, b) => b.spentAt.localeCompare(a.spentAt));
+  },
+
+  getExpense(expenseId: number) {
+    return db().expenses.find((item) => item.id === expenseId) ?? null;
+  },
+
+  createExpense(input: ExpenseInput) {
+    const expense: Expense = {
+      id: id(),
+      title: input.title.trim(),
+      category: input.category,
+      amount: Math.max(0, Math.round(input.amount)),
+      season: input.season?.trim() || null,
+      bootcampId: input.bootcampId ?? null,
+      delivery: input.delivery ?? "shared",
+      spentAt: input.spentAt,
+      note: input.note?.trim() ?? "",
+    };
+    db().expenses.unshift(expense);
+    return expense;
+  },
+
+  updateExpense(expenseId: number, input: Partial<ExpenseInput>) {
+    const expense = this.getExpense(expenseId);
+    if (!expense) throw new Error("هزینه پیدا نشد.");
+    if (input.title !== undefined) expense.title = input.title.trim();
+    if (input.category !== undefined) expense.category = input.category;
+    if (input.amount !== undefined) expense.amount = Math.max(0, Math.round(input.amount));
+    if (input.season !== undefined) expense.season = input.season?.trim() || null;
+    if (input.bootcampId !== undefined) expense.bootcampId = input.bootcampId;
+    if (input.delivery !== undefined) expense.delivery = input.delivery;
+    if (input.spentAt !== undefined) expense.spentAt = input.spentAt;
+    if (input.note !== undefined) expense.note = input.note.trim();
+    return expense;
+  },
+
+  deleteExpense(expenseId: number) {
+    const store = db();
+    const index = store.expenses.findIndex((item) => item.id === expenseId);
+    if (index < 0) throw new Error("هزینه پیدا نشد.");
+    store.expenses.splice(index, 1);
   },
 
   verifyPayment(paymentId: number, approved: boolean) {

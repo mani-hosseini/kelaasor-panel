@@ -1,7 +1,3 @@
-import {
-  setStoredCouponDiscount,
-  withCouponOverlay,
-} from "@/lib/api/couponStore";
 import { apiRequest } from "@/lib/api/http";
 import {
   asBool,
@@ -76,7 +72,7 @@ function normalizePayment(item: unknown): Payment | null {
     .map(normalizeInstallment)
     .filter((row): row is PaymentInstallment => row != null);
 
-  return withCouponOverlay({
+  return {
     id,
     enrollmentId,
     userId,
@@ -94,7 +90,7 @@ function normalizePayment(item: unknown): Payment | null {
     chequeNumber: asStr(item.cheque_number) ?? asStr(item.chequeNumber),
     verified: inferVerified(item, paidPercentage),
     installments,
-  });
+  };
 }
 
 function assertPayment(payload: unknown): Payment {
@@ -112,10 +108,19 @@ function matchesAwaiting(payment: Payment) {
 
 export const paymentsApi = {
   async list(params?: ListParams): Promise<Payment[]> {
-    const payload = await apiRequest<unknown>("/panel/admin/payments/");
+    const payload = await apiRequest<unknown>("/panel/admin/payments/", {
+      searchParams: {
+        bootcamp_id: params?.bootcampId,
+      },
+    });
     let items = unwrapList(payload, ["payments"])
       .map(normalizePayment)
       .filter((item): item is Payment => item != null);
+
+    // Client-side fallback if API ignored bootcamp_id.
+    if (params?.bootcampId != null) {
+      items = items.filter((item) => item.bootcampId === params.bootcampId);
+    }
 
     const search = params?.search?.trim().toLowerCase();
     if (search) {
@@ -170,12 +175,15 @@ export const paymentsApi = {
     return this.get(paymentId);
   },
 
-  /**
-   * Panel-side coupon until backend exposes a dedicated endpoint.
-   * Persists in localStorage and overlays on subsequent reads.
-   */
+  /** Absolute coupon amount (not additive). `0` clears the coupon. */
   async applyCoupon(paymentId: number, amount: number): Promise<Payment> {
-    setStoredCouponDiscount(paymentId, amount);
-    return this.get(paymentId);
+    const payload = await apiRequest<unknown>(
+      `/panel/admin/payments/${paymentId}/coupon/`,
+      {
+        method: "POST",
+        body: { amount: Math.max(0, Math.round(amount)) },
+      },
+    );
+    return assertPayment(payload);
   },
 };

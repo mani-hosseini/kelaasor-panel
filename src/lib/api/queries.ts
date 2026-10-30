@@ -7,6 +7,7 @@ import type {
   BootcampInput,
   CallOutcome,
   EnrollmentStatus,
+  ExpenseInput,
   InstructorInput,
   ListParams,
   SponsorInput,
@@ -20,6 +21,8 @@ export const queryKeys = {
   enrollment: (id: number) => ["enrollment", id] as const,
   payments: (params?: ListParams) => ["payments", params] as const,
   payment: (id: number) => ["payment", id] as const,
+  expenses: ["expenses"] as const,
+  expense: (id: number) => ["expense", id] as const,
   bootcamps: (params?: ListParams) => ["bootcamps", params] as const,
   bootcamp: (id: number) => ["bootcamp", id] as const,
   users: (params?: ListParams) => ["users", params] as const,
@@ -134,6 +137,44 @@ export function useApplyPaymentCoupon() {
       await client.invalidateQueries({ queryKey: queryKeys.payment(variables.paymentId) });
       await client.invalidateQueries({ queryKey: ["payments"] });
       await client.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useExpenses() {
+  return useQuery({
+    queryKey: queryKeys.expenses,
+    queryFn: () => adminApi.expenses.list(),
+  });
+}
+
+export function useCreateExpense() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ExpenseInput) => adminApi.expenses.create(input),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.expenses });
+    },
+  });
+}
+
+export function useUpdateExpense() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number; data: Partial<ExpenseInput> }) =>
+      adminApi.expenses.update(input.id, input.data),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.expenses });
+    },
+  });
+}
+
+export function useDeleteExpense() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => adminApi.expenses.remove(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.expenses });
     },
   });
 }

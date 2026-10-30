@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
+import { ExpenseFormDialog } from "@/components/finance/ExpenseFormDialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDeleteExpense } from "@/lib/api/queries";
 import type { Expense } from "@/lib/api/types";
 import { expenseCategoryMeta } from "@/lib/api/types";
 import type { FinanceBucket, FinanceSnapshot } from "@/lib/finance/aggregate";
@@ -184,39 +190,96 @@ export function FinanceExpenseCategories({ snapshot }: { snapshot: FinanceSnapsh
 }
 
 export function FinanceExpenseLedger({ expenses }: { expenses: Expense[] }) {
+  const deleteExpense = useDeleteExpense();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<Expense | null>(null);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>دفتر هزینه</CardTitle>
-        <CardDescription>{toFa(expenses.length)} ردیف ثبت‌شده</CardDescription>
-      </CardHeader>
-      <CardContent className="max-h-[28rem] space-y-2 overflow-y-auto">
-        {expenses.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border px-3.5 py-3"
-          >
-            <div className="min-w-0 text-right">
-              <p className="font-medium">{item.title}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {expenseCategoryMeta[item.category].label}
-                {item.season ? ` · ${item.season}` : ""}
-                {" · "}
-                {item.delivery === "online"
-                  ? "آنلاین"
-                  : item.delivery === "in_person"
-                    ? "حضوری"
-                    : "مشترک"}
-                {" · "}
-                {formatJalaliDate(item.spentAt)}
-              </p>
-            </div>
-            <p className="shrink-0 text-sm font-bold tabular-nums text-orange">
-              {formatTomanCompact(item.amount)}
-            </p>
+    <>
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+          <div className="space-y-1.5 text-right">
+            <CardTitle>دفتر هزینه</CardTitle>
+            <CardDescription>{toFa(expenses.length)} ردیف ثبت‌شده</CardDescription>
           </div>
-        ))}
-      </CardContent>
-    </Card>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-3.5" />
+            ثبت هزینه
+          </Button>
+        </CardHeader>
+        <CardContent className="max-h-[28rem] space-y-2 overflow-y-auto">
+          {expenses.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+              هنوز هزینه‌ای ثبت نشده. با «ثبت هزینه» شروع کنید.
+            </p>
+          ) : (
+            expenses.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border px-3.5 py-3"
+              >
+                <div className="min-w-0 text-right">
+                  <p className="font-medium">{item.title}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {expenseCategoryMeta[item.category].label}
+                    {item.season ? ` · ${item.season}` : ""}
+                    {" · "}
+                    {item.delivery === "online"
+                      ? "آنلاین"
+                      : item.delivery === "in_person"
+                        ? "حضوری"
+                        : "مشترک"}
+                    {" · "}
+                    {formatJalaliDate(item.spentAt)}
+                  </p>
+                  {item.note ? (
+                    <p className="mt-1 text-[11px] text-muted-foreground">{item.note}</p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <p className="text-sm font-bold tabular-nums text-orange">
+                    {formatTomanCompact(item.amount)}
+                  </p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-8"
+                    aria-label="ویرایش"
+                    onClick={() => setEditing(item)}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-8"
+                    aria-label="حذف"
+                    disabled={deleteExpense.isPending}
+                    onClick={() => {
+                      if (!window.confirm(`«${item.title}» حذف شود؟`)) return;
+                      deleteExpense.mutate(item.id, {
+                        onSuccess: () => toast.success("هزینه حذف شد"),
+                        onError: (error) => toast.error(error.message),
+                      });
+                    }}
+                  >
+                    <Trash2 className="size-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <ExpenseFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <ExpenseFormDialog
+        open={Boolean(editing)}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        expense={editing}
+      />
+    </>
   );
 }

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { payableAmount } from "@/lib/api/couponStore";
+import { payableAmount } from "@/lib/api/paymentMoney";
 import { useAdminLookups } from "@/lib/api/lookups";
 import { useBootcamp, usePayments } from "@/lib/api/queries";
 import type { Payment } from "@/lib/api/types";
@@ -25,17 +25,16 @@ export default function BootcampPaymentsPage() {
   const params = useParams<{ bootcampId: string }>();
   const bootcampId = Number(params.bootcampId);
   const bootcampQuery = useBootcamp(bootcampId);
-  const paymentsQuery = usePayments();
+  const paymentsQuery = usePayments(
+    Number.isFinite(bootcampId) && bootcampId > 0 ? { bootcampId } : undefined,
+  );
   const { userName } = useAdminLookups();
 
   const [filter, setFilter] = useState<ViewFilter>("all");
   const [search, setSearch] = useState("");
 
   const bootcamp = bootcampQuery.data;
-  const allPayments = useMemo(
-    () => (paymentsQuery.data ?? []).filter((item) => item.bootcampId === bootcampId),
-    [paymentsQuery.data, bootcampId],
-  );
+  const allPayments = paymentsQuery.data ?? [];
 
   const filtered = useMemo(() => {
     let items = allPayments;

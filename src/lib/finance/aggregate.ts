@@ -1,4 +1,4 @@
-import { payableAmount } from "@/lib/api/couponStore";
+import { payableAmount } from "@/lib/api/paymentMoney";
 import type { Bootcamp, Expense, ExpenseCategory, Payment, Topic } from "@/lib/api/types";
 import { expenseCategoryMeta } from "@/lib/api/types";
 import { formatJalaliSession } from "@/lib/format";

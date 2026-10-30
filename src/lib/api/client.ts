@@ -5,6 +5,7 @@ import { certificatesApi } from "@/lib/api/certificates.api";
 import { customersApi } from "@/lib/api/customers.api";
 import { dashboardApi } from "@/lib/api/dashboard.api";
 import { enrollmentsApi } from "@/lib/api/enrollments.api";
+import { expensesApi } from "@/lib/api/expenses.api";
 import { instructorsApi } from "@/lib/api/instructors.api";
 import { isMockMode } from "@/lib/api/mode";
 import { mockExtras } from "@/lib/api/mock/extras";
@@ -22,6 +23,7 @@ import {
   type BootcampInput,
   type CallOutcome,
   type EnrollmentStatus,
+  type ExpenseInput,
   type InstructorInput,
   type ListParams,
   type LoginInput,
@@ -123,6 +125,32 @@ export const adminApi = {
       useMock
         ? runMock(() => mockStore.applyCoupon(paymentId, amount))
         : paymentsApi.applyCoupon(paymentId, amount),
+  },
+  expenses: {
+    list: () =>
+      useMock ? runMock(() => mockStore.listExpenses()) : expensesApi.list(),
+    get: (id: number) =>
+      useMock
+        ? runMock(() => {
+            const item = mockStore.getExpense(id);
+            if (!item) throw new Error("هزینه پیدا نشد.");
+            return item;
+          })
+        : expensesApi.get(id),
+    create: (input: ExpenseInput) =>
+      useMock
+        ? runMock(() => mockStore.createExpense(input))
+        : expensesApi.create(input),
+    update: (id: number, input: Partial<ExpenseInput>) =>
+      useMock
+        ? runMock(() => mockStore.updateExpense(id, input))
+        : expensesApi.update(id, input),
+    remove: (id: number) =>
+      useMock
+        ? runMock(() => {
+            mockStore.deleteExpense(id);
+          })
+        : expensesApi.remove(id),
   },
   certificates: {
     list: (params?: ListParams) =>

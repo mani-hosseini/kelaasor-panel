@@ -420,6 +420,17 @@ export type Expense = {
   note: string;
 };
 
+export type ExpenseInput = {
+  title: string;
+  category: ExpenseCategory;
+  amount: number;
+  season?: string | null;
+  bootcampId?: number | null;
+  delivery?: Expense["delivery"];
+  spentAt: string;
+  note?: string;
+};
+
 export const EVENT_STATUS = {
   PRE_REGISTERING: 0,
   REGISTERING: 1,

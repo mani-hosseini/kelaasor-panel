@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { payableAmount } from "@/lib/api/couponStore";
+import { hasUnpaidInstallments, payableAmount } from "@/lib/api/paymentMoney";
 import { useAdminLookups } from "@/lib/api/lookups";
 import {
   useApplyPaymentCoupon,
@@ -46,6 +46,7 @@ export default function PaymentDetailPage() {
 
   const discount = data.couponDiscount ?? 0;
   const payable = payableAmount(data);
+  const canApplyCoupon = hasUnpaidInstallments(data);
 
   return (
     <div dir="rtl" className="space-y-6 text-right">
@@ -90,81 +91,82 @@ export default function PaymentDetailPage() {
           </CardContent>
         </Card>
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TicketPercent className="size-4 text-brand" />
-                کپن تخفیف
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                مبلغ تخفیف را به تومان وارد کنید تا از مبلغ کل کم شود. مثلاً ۱٬۰۰۰٬۰۰۰.
-              </p>
-              <div className="space-y-1.5">
-                <Label htmlFor="coupon-amount">مبلغ کپن (تومان)</Label>
-                <Input
-                  id="coupon-amount"
-                  dir="ltr"
-                  inputMode="numeric"
-                  className="text-left"
-                  placeholder="1000000"
-                  value={couponInput}
-                  onChange={(event) =>
-                    setCouponInput(event.target.value.replace(/[^\d]/g, ""))
-                  }
-                />
-              </div>
-              <div className="rounded-xl bg-brand/5 px-3 py-2 text-sm">
-                <p className="text-xs text-muted-foreground">مبلغ قابل پرداخت بعد از کپن</p>
-                <p className="mt-1 font-bold">
-                  {formatToman(
-                    Math.max(0, data.totalAmount - (Number(couponInput) || 0)),
-                  )}
+          {canApplyCoupon ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TicketPercent className="size-4 text-brand" />
+                  کپن تخفیف
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  مبلغ کل کپن را به تومان وارد کنید (جایگزین کپن قبلی می‌شود، جمع نمی‌شود). ۰ یعنی حذف کپن.
                 </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1"
-                  disabled={applyCoupon.isPending}
-                  onClick={() => {
-                    const amount = Number(couponInput) || 0;
-                    if (amount > data.totalAmount) {
-                      toast.error("مبلغ کپن نمی‌تواند از مبلغ کل بیشتر باشد");
-                      return;
+                <div className="space-y-1.5">
+                  <Label htmlFor="coupon-amount">مبلغ کپن (تومان)</Label>
+                  <Input
+                    id="coupon-amount"
+                    dir="ltr"
+                    inputMode="numeric"
+                    className="text-left"
+                    placeholder="1000000"
+                    value={couponInput}
+                    onChange={(event) =>
+                      setCouponInput(event.target.value.replace(/[^\d]/g, ""))
                     }
-                    applyCoupon.mutate(
-                      { paymentId: id, amount },
-                      {
-                        onSuccess: () =>
-                          toast.success(
-                            amount > 0
-                              ? `کپن ${formatToman(amount)} اعمال شد`
-                              : "کپن حذف شد",
-                          ),
-                        onError: (error) => toast.error(error.message),
-                      },
-                    );
-                  }}
-                >
-                  اعمال کپن
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={applyCoupon.isPending || discount <= 0}
-                  onClick={() => {
-                    setCouponInput("");
-                    applyCoupon.mutate(
-                      { paymentId: id, amount: 0 },
-                      { onSuccess: () => toast.message("کپن حذف شد") },
-                    );
-                  }}
-                >
-                  حذف
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  />
+                </div>
+                <div className="rounded-xl bg-brand/5 px-3 py-2 text-sm">
+                  <p className="text-xs text-muted-foreground">مبلغ قابل پرداخت بعد از کپن</p>
+                  <p className="mt-1 font-bold">
+                    {formatToman(
+                      Math.max(0, data.totalAmount - (Number(couponInput) || 0)),
+                    )}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    disabled={applyCoupon.isPending}
+                    onClick={() => {
+                      const amount = Number(couponInput) || 0;
+                      applyCoupon.mutate(
+                        { paymentId: id, amount },
+                        {
+                          onSuccess: () =>
+                            toast.success(
+                              amount > 0
+                                ? `کپن ${formatToman(amount)} اعمال شد`
+                                : "کپن حذف شد",
+                            ),
+                          onError: (error) => toast.error(error.message),
+                        },
+                      );
+                    }}
+                  >
+                    اعمال کپن
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={applyCoupon.isPending || discount <= 0}
+                    onClick={() => {
+                      setCouponInput("");
+                      applyCoupon.mutate(
+                        { paymentId: id, amount: 0 },
+                        {
+                          onSuccess: () => toast.message("کپن حذف شد"),
+                          onError: (error) => toast.error(error.message),
+                        },
+                      );
+                    }}
+                  >
+                    حذف
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle>تأیید ادمین</CardTitle>

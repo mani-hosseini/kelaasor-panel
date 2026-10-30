@@ -16,6 +16,13 @@ export function extractApiErrorMessage(data: unknown): string | null {
     return record.non_field_errors[0];
   }
 
+  // Prefer field errors like { amount: ["…"] } from DRF validators.
+  for (const key of ["amount", "title", "category", "spent_at", "bootcamp_id"]) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+  }
+
   for (const value of Object.values(record)) {
     if (typeof value === "string" && value.trim()) return value.trim();
     if (Array.isArray(value) && typeof value[0] === "string") return value[0];

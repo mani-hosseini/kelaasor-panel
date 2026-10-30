@@ -1,21 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 
-import { listExpenses } from "@/lib/api/expenseStore";
-import { useBootcamps, usePayments, useTopics } from "@/lib/api/queries";
+import { useBootcamps, useExpenses, usePayments, useTopics } from "@/lib/api/queries";
 import { buildFinanceSnapshot } from "@/lib/finance/aggregate";
 
 export function useFinanceSnapshot() {
   const paymentsQuery = usePayments();
   const bootcampsQuery = useBootcamps();
   const topicsQuery = useTopics();
-  const expensesQuery = useQuery({
-    queryKey: ["finance-expenses"],
-    queryFn: () => listExpenses(),
-    staleTime: 30_000,
-  });
+  const expensesQuery = useExpenses();
 
   const snapshot = useMemo(() => {
     if (!paymentsQuery.data || !bootcampsQuery.data || !topicsQuery.data || !expensesQuery.data) {
