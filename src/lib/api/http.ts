@@ -1,3 +1,4 @@
+import { getAccessToken } from "@/lib/auth";
 import BASE_URL from "@/lib/baseUrl";
 import { ApiRequestError, extractApiErrorMessage } from "@/lib/api/error";
 
@@ -55,6 +56,10 @@ export async function apiRequest<T>(
     "Accept-Language": "fa-IR",
     Accept: "application/json",
   };
+  const accessToken = getAccessToken();
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
 
   let body: BodyInit | undefined;
   if (options.formData) {

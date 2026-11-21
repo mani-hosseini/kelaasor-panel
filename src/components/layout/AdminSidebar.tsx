@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { adminApi } from "@/lib/api/client";
-import { clearSessionCookie } from "@/lib/auth";
+import { clearAccessToken, clearSessionCookie } from "@/lib/auth";
 import { isNavActive, routes } from "@/lib/routes";
 import { cn, initials } from "@/lib/utils";
 
@@ -211,6 +211,7 @@ export function AdminSidebar({ adminName, collapsed, onNavigate, className }: Ad
             } catch {
               // still clear local gate even if API logout fails
             }
+            clearAccessToken();
             clearSessionCookie();
             router.replace(routes.login);
           }}

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { enrollmentStatusMeta } from "@/lib/api/labels";
-import { useCustomers, useToggleCustomerStar } from "@/lib/api/queries";
+import { useBootcamps, useCustomers, useEnrollments, useToggleCustomerStar } from "@/lib/api/queries";
 import {
   ENROLLMENT_STATUS,
   type CustomerListItem,
@@ -76,7 +76,22 @@ export function CustomersPageContent() {
       ? initialCrm
       : "all",
   );
+  const [bootcampId, setBootcampId] = useState<number | "all">("all");
   const toggleStar = useToggleCustomerStar();
+  const bootcampsQuery = useBootcamps();
+  const bootcamps = useMemo(
+    () =>
+      [...(bootcampsQuery.data ?? [])].sort(
+        (a, b) => a.ordering - b.ordering || a.title.localeCompare(b.title, "fa"),
+      ),
+    [bootcampsQuery.data],
+  );
+  const selectedBootcamp =
+    bootcampId === "all" ? null : bootcamps.find((item) => item.id === bootcampId) ?? null;
+  const enrollmentsQuery = useEnrollments(
+    selectedBootcamp ? { bootcampId: selectedBootcamp.id } : undefined,
+    selectedBootcamp != null,
+  );
 
   useEffect(() => {
     const next = searchParams.get("crm") as ListParams["crmFilter"];
@@ -90,6 +105,15 @@ export function CustomersPageContent() {
     status: status === "all" ? undefined : status,
     crmFilter,
   });
+  const enrolledUserIds = useMemo(() => {
+    if (!selectedBootcamp) return null;
+    return new Set((enrollmentsQuery.data ?? []).map((item) => item.userId));
+  }, [enrollmentsQuery.data, selectedBootcamp]);
+  const rows = useMemo(
+    () => (enrolledUserIds ? data.filter((item) => enrolledUserIds.has(item.id)) : data),
+    [data, enrolledUserIds],
+  );
+  const listLoading = isLoading || (selectedBootcamp != null && enrollmentsQuery.isLoading);
 
   const columns = useMemo<ColumnDef<CustomerListItem>[]>(
     () => [
@@ -217,7 +241,11 @@ export function CustomersPageContent() {
       <PageHeader
         eyebrow="عملیات"
         title="مشتریان"
-        description={`${toFa(data.length)} مشتری — پیگیری، یادداشت، تماس و مراحل ثبت‌نام.`}
+        description={
+          selectedBootcamp
+            ? `${toFa(rows.length)} مشتری در «${selectedBootcamp.title}»`
+            : `${toFa(rows.length)} مشتری — پیگیری، یادداشت، تماس و مراحل ثبت‌نام.`
+        }
         actions={
           <Button asChild variant="outline" size="sm">
             <Link href={`${routes.customers}?crm=followup`}>
@@ -228,12 +256,37 @@ export function CustomersPageContent() {
         }
       />
       <div className="surface-panel p-5">
-        {isLoading ? (
+        <div className="mb-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground">بوت‌کمپ</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={bootcampId === "all" ? "default" : "outline"}
+              onClick={() => setBootcampId("all")}
+            >
+              همه
+            </Button>
+            {bootcamps.map((bootcamp) => (
+              <Button
+                key={bootcamp.id}
+                type="button"
+                size="sm"
+                variant={bootcampId === bootcamp.id ? "default" : "outline"}
+                onClick={() => setBootcampId(bootcamp.id)}
+                className="shrink-0"
+              >
+                {bootcamp.title}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {listLoading ? (
           <Skeleton className="h-80" />
         ) : (
           <DataTable
             columns={columns}
-            data={data}
+            data={rows}
             searchValue={search}
             onSearchChange={setSearch}
             searchPlaceholder="نام، موبایل یا ایمیل…"

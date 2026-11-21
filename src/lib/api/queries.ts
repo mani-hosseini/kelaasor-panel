@@ -50,10 +50,11 @@ export function useDashboard() {
   return useQuery({ queryKey: queryKeys.dashboard, queryFn: adminApi.dashboard.stats });
 }
 
-export function useEnrollments(params?: ListParams) {
+export function useEnrollments(params?: ListParams, enabled = true) {
   return useQuery({
     queryKey: queryKeys.enrollments(params),
     queryFn: () => adminApi.enrollments.list(params),
+    enabled,
   });
 }
 
